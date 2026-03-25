@@ -44,21 +44,29 @@ import {
   LogOut,
   Mail,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Info
 } from 'lucide-react';
 
 // --- CONFIGURATION FIREBASE ---
-// Utilise la configuration de l'environnement pour l'aperçu ou une config vide pour l'export
+// Note pour Alex : Pour GitHub, tu devras remplir cet objet avec tes vraies clés Firebase.
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
   ? JSON.parse(__firebase_config) 
-  : { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
+  : { 
+      apiKey: "VOTRE_API_KEY", 
+      authDomain: "VOTRE_AUTH_DOMAIN", 
+      projectId: "VOTRE_PROJECT_ID", 
+      storageBucket: "VOTRE_STORAGE_BUCKET", 
+      messagingSenderId: "VOTRE_SENDER_ID", 
+      appId: "VOTRE_APP_ID" 
+    };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'dico-ai-alex';
 
-// Clé API Gemini (gérée automatiquement dans cet environnement)
+// Clé API Gemini
 const apiKey = ""; 
 
 // --- UTILITAIRES ---
@@ -130,34 +138,34 @@ const SwipeableWordCard = ({ word, onSpeak, onEnrich, onDelete, isDrivingMode })
   };
 
   return (
-    <div className="relative overflow-hidden rounded-[2rem] mb-4 group shadow-sm font-light tracking-tight">
+    <div className="relative overflow-hidden rounded-[2rem] mb-4 group shadow-sm font-light tracking-tight transition-all duration-300">
       <div className="absolute inset-0 bg-red-500 flex items-center justify-end px-8 transition-opacity" style={{ opacity: currentX < -20 ? 1 : 0 }}>
-        <button onClick={() => onDelete(word)} className="text-white flex flex-col items-center gap-1">
+        <button onClick={() => onDelete(word)} className="text-white flex flex-col items-center gap-1 font-light">
           <Trash2 size={24} strokeWidth={1.2} />
-          <span className="text-[10px] uppercase">Effacer</span>
+          <span className="text-[10px] uppercase tracking-wider">Effacer</span>
         </button>
       </div>
 
       <div 
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
         style={{ transform: `translateX(${currentX}px)` }}
-        className={`p-6 transition-transform duration-200 ease-out relative z-10 border border-slate-100 ${isDrivingMode ? 'bg-sky-950 border-sky-900 text-white' : 'bg-white text-slate-900'}`}
+        className={`p-6 transition-transform duration-300 ease-out relative z-10 border border-slate-100 ${isDrivingMode ? 'bg-sky-950 border-sky-900 text-white' : 'bg-white text-slate-900'}`}
       >
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-light text-2xl capitalize italic">{word.term}</h3>
+              <h3 className="font-light text-2xl capitalize italic tracking-tight">{word.term}</h3>
               {word.originalInput && <div className="text-amber-500"><SpellCheck size={14} strokeWidth={1.2} /></div>}
               {word.enriched && <Sparkles size={14} className="text-amber-400 animate-pulse" />}
               {!isDrivingMode && !isSwiped && currentX === 0 && (
-                 <ChevronLeft size={16} className="text-slate-200 ml-auto opacity-50 group-hover:translate-x-[-4px] transition-transform" />
+                 <ChevronLeft size={16} className="text-slate-200 ml-auto opacity-30 group-hover:translate-x-[-4px] transition-transform" />
               )}
             </div>
-            <p className="text-sm font-light leading-relaxed opacity-80 tracking-tight">{word.definition}</p>
+            <p className="text-sm font-light leading-relaxed opacity-70 tracking-tight">{word.definition}</p>
             {word.enriched && (
-              <div className="space-y-3 pt-4 mt-4 border-t border-slate-50">
-                {word.synonyms && <p className="text-xs italic opacity-70">Synonymes : {word.synonyms}</p>}
-                {word.example && <p className="bg-sky-50/10 p-3 rounded-xl text-xs italic opacity-90 border-l-2 border-sky-400">"{word.example}"</p>}
+              <div className="space-y-3 pt-4 mt-4 border-t border-slate-50 animate-in fade-in">
+                {word.synonyms && <p className="text-xs italic opacity-60 font-light tracking-tight">Synonymes : {word.synonyms}</p>}
+                {word.example && <p className="bg-sky-50/10 p-3 rounded-xl text-xs italic opacity-80 border-l-2 border-sky-400 font-light tracking-tight">"{word.example}"</p>}
               </div>
             )}
           </div>
@@ -175,6 +183,7 @@ const SwipeableWordCard = ({ word, onSpeak, onEnrich, onDelete, isDrivingMode })
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [words, setWords] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -194,25 +203,28 @@ export default function App() {
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
 
-  // Initialisation Auth
+  // Authentification Listener
   useEffect(() => {
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          // Pour permettre le test immédiat sans login obligatoire dans l'aperçu si on le souhaite
-          // await signInAnonymously(auth); 
         }
       } catch (err) {
         console.error("Auth error:", err);
+      } finally {
+        setIsInitializing(false);
       }
     };
     initAuth();
-    return onAuthStateChanged(auth, setUser);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsInitializing(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  // Sync Firestore
+  // Sync Données
   useEffect(() => {
     if (!user) return;
     const q = collection(db, 'artifacts', appId, 'users', user.uid, 'dictionary');
@@ -221,11 +233,10 @@ export default function App() {
       setWords(list.sort((a, b) => b.createdAt - a.createdAt));
     }, (err) => {
       console.error("Firestore Error:", err);
-      setError("Erreur de synchronisation Cloud.");
+      setError("Synchronisation impossible.");
     });
   }, [user]);
 
-  // Appels Gemini
   const callGemini = async (prompt, systemPrompt = "") => {
     let retries = 0;
     while (retries < 5) {
@@ -286,15 +297,13 @@ export default function App() {
       const corrected = await callGemini(`Corrige l'orthographe: "${term}". Réponds uniquement par le mot.`);
       const final = corrected?.trim() || term.trim();
       const definition = await callGemini(`Définition courte (<15 mots) pour "${final}".`);
-      
       await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'dictionary'), {
         term: final,
-        originalInput: term.trim() !== final ? term.trim() : null,
+        originalInput: term !== final ? term : null,
         definition: definition || "Définition indisponible",
         createdAt: Date.now(),
         enriched: false
       });
-      
       setInputValue('');
       speak(definition || final, () => isDrivingMode && startRecognition());
     } catch { setError("Erreur réseau"); } finally { setIsLoading(false); }
@@ -323,49 +332,70 @@ export default function App() {
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
       }
-    } catch { setError("Identifiants incorrects ou erreur réseau."); } finally { setIsLoading(false); }
+    } catch (err) { 
+      setError("Identifiants incorrects ou problème de connexion."); 
+    } finally { setIsLoading(false); }
   };
 
   const handleGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-light">
+        <Loader2 className="animate-spin text-sky-500" size={40} strokeWidth={1} />
+      </div>
+    );
+  }
 
   // --- RENDU AUTH ---
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 font-light tracking-tight flex flex-col items-center justify-center p-6 text-slate-900">
-        <div className="max-w-sm w-full space-y-8 animate-in fade-in duration-700">
+        <div className="max-w-sm w-full space-y-10 animate-in fade-in zoom-in duration-700">
           <div className="text-center space-y-4">
-            <div className="bg-sky-500 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-sky-500/40 text-white">
+            <div className="bg-sky-500 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-sky-500/20 text-white">
               <DicoLogo className="w-12 h-12" />
             </div>
             <h1 className="text-5xl font-light italic tracking-tight text-sky-600">DICO AI</h1>
-            <p className="text-slate-400 font-light italic">Votre dictionnaire intelligent et personnel.</p>
+            <p className="text-slate-400 italic tracking-tight">Votre dictionnaire intelligent et personnel.</p>
           </div>
 
-          <form onSubmit={handleAuth} className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 space-y-6">
+          <form onSubmit={handleAuth} className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 space-y-6">
             <div className="space-y-3">
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} strokeWidth={1.2} />
-                <input type="email" placeholder="Email" required className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <input type="email" placeholder="Email" required className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light tracking-tight" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} strokeWidth={1.2} />
-                <input type="password" placeholder="Mot de passe" required className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <input type="password" placeholder="Mot de passe" required className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light tracking-tight" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
             </div>
-            <button type="submit" disabled={isLoading} className="w-full bg-sky-500 text-white py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-sky-600 transition-all shadow-lg shadow-sky-100 font-light">
+            <button type="submit" disabled={isLoading} className="w-full bg-sky-500 text-white py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-sky-600 transition-all shadow-lg shadow-sky-100 font-light tracking-tight">
               {isLoading ? <Loader2 size={20} className="animate-spin" /> : (authMode === 'login' ? 'Se connecter' : "S'inscrire")}
-              <ArrowRight size={18} />
+              <ArrowRight size={18} strokeWidth={1.2} />
             </button>
-            <button type="button" onClick={handleGoogle} className="w-full border border-slate-100 py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-50 transition-all font-light">
+            
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-slate-100"></div>
+              <span className="flex-shrink mx-4 text-slate-200 text-[10px] uppercase tracking-widest">Ou</span>
+              <div className="flex-grow border-t border-slate-100"></div>
+            </div>
+
+            <button type="button" onClick={handleGoogle} className="w-full border border-slate-100 py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-50 transition-all font-light tracking-tight">
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="G" /> Continuer avec Google
             </button>
           </form>
 
           <p className="text-center text-sm font-light text-slate-400 italic">
-            {authMode === 'login' ? "Nouveau sur DICO AI ?" : "Déjà un compte ?"} 
+            {authMode === 'login' ? "Pas encore de compte ?" : "Déjà un compte ?"} 
             <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="ml-2 text-sky-600 font-normal hover:underline">{authMode === 'login' ? "Créer un compte" : "Se connecter"}</button>
           </p>
         </div>
@@ -377,16 +407,17 @@ export default function App() {
   return (
     <div className={`min-h-screen font-light tracking-tight pb-32 transition-all duration-700 ${isDrivingMode ? 'bg-sky-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
       
+      {/* Fenêtre de confirmation */}
       {wordToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in">
           <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => setWordToDelete(null)}></div>
           <div className="relative bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl border border-slate-100 text-center font-light">
             <AlertTriangle size={48} strokeWidth={1.2} className="mx-auto text-red-500 mb-6" />
-            <h2 className="text-2xl font-light text-slate-900 mb-2 italic">Effacer ?</h2>
-            <p className="text-slate-500 text-sm mb-8 font-light">Voulez-vous supprimer <span className="text-sky-600 font-normal italic">"{wordToDelete.term}"</span> définitivement ?</p>
+            <h2 className="text-2xl font-light text-slate-900 mb-2 italic tracking-tight">Effacer ?</h2>
+            <p className="text-slate-500 text-sm mb-8 font-light tracking-tight leading-relaxed">Voulez-vous supprimer <span className="text-sky-600 font-normal italic">"{wordToDelete.term}"</span> définitivement ?</p>
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => setWordToDelete(null)} className="py-4 rounded-2xl text-slate-400 bg-slate-100 font-light">Non</button>
-              <button onClick={async () => { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dictionary', wordToDelete.id)); setWordToDelete(null); }} className="py-4 rounded-2xl text-white bg-red-500 shadow-lg shadow-red-100 font-light">Oui</button>
+              <button onClick={() => setWordToDelete(null)} className="py-4 rounded-2xl text-slate-400 bg-slate-100 font-light tracking-tight">Non</button>
+              <button onClick={async () => { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dictionary', wordToDelete.id)); setWordToDelete(null); }} className="py-4 rounded-2xl text-white bg-red-500 shadow-lg font-light tracking-tight">Oui</button>
             </div>
           </div>
         </div>
@@ -406,25 +437,25 @@ export default function App() {
           <div className="flex gap-2">
             {!isDrivingMode && <button onClick={() => setQuizMode(!quizMode)} className="p-2.5 bg-sky-50 text-sky-600 rounded-xl hover:bg-sky-100 transition-colors"><BrainCircuit size={20} strokeWidth={1.2} /></button>}
             <button onClick={() => signOut(auth)} className="p-2.5 text-slate-300 hover:text-red-400 transition-colors" title="Déconnexion"><LogOut size={20} strokeWidth={1.2} /></button>
-            <button onClick={() => { setIsDrivingMode(!isDrivingMode); if (!isDrivingMode) speak("Mode DICO AI activé."); }} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm transition-all ${isDrivingMode ? 'bg-orange-500 shadow-lg animate-pulse text-white' : 'bg-slate-100 text-slate-600'}`}><Car size={18} strokeWidth={1.2} /> {isDrivingMode ? 'ON' : 'OFF'}</button>
+            <button onClick={() => { setIsDrivingMode(!isDrivingMode); if (!isDrivingMode) speak("Mode DICO AI activé."); }} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm transition-all font-light tracking-tight ${isDrivingMode ? 'bg-orange-500 shadow-lg animate-pulse text-white' : 'bg-slate-100 text-slate-600'}`}><Car size={18} strokeWidth={1.2} /> {isDrivingMode ? 'ON' : 'OFF'}</button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto p-4 space-y-6">
+      <main className="max-w-md mx-auto p-4 space-y-6 font-light">
         {isDrivingMode ? (
           <div className="py-20 text-center space-y-10 animate-in fade-in duration-500">
             <div className={`w-40 h-40 mx-auto rounded-full flex items-center justify-center transition-all duration-500 ${isListening ? 'bg-orange-500 shadow-[0_0_60px_rgba(249,115,22,0.6)] scale-110' : 'bg-sky-900/50 border border-sky-500/30'}`}>
               <Mic size={56} className={isListening ? 'text-white' : 'text-sky-300'} strokeWidth={1.2} />
             </div>
             <h2 className="text-4xl font-light italic tracking-tight uppercase text-sky-200">Je vous écoute</h2>
-            <p className="text-sky-300 italic font-light opacity-70">Correction orthographique active</p>
+            <p className="text-sky-300 italic opacity-70 tracking-tight">Correction orthographique active</p>
           </div>
         ) : (
           <>
             <div className="relative group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" size={18} strokeWidth={1.2} />
-              <input type="text" placeholder="Rechercher un mot..." className="w-full pl-12 pr-4 py-4 bg-white rounded-[2rem] shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <input type="text" placeholder="Rechercher un mot..." className="w-full pl-12 pr-4 py-4 bg-white rounded-[2rem] shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light tracking-tight placeholder:italic" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
 
             <div className="space-y-0">
@@ -447,8 +478,8 @@ export default function App() {
                 />
               ))}
               {words.length === 0 && !isLoading && (
-                <div className="py-24 text-center space-y-4 opacity-40 italic font-light">
-                  <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto"><BookOpen className="text-slate-400" strokeWidth={1.2} /></div>
+                <div className="py-24 text-center space-y-4 opacity-40 italic tracking-tight font-light">
+                  <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-inner"><BookOpen className="text-slate-400" strokeWidth={1} /></div>
                   <p className="text-lg">Votre dictionnaire est vide.</p>
                 </div>
               )}
@@ -462,7 +493,7 @@ export default function App() {
           <div className="max-w-md mx-auto bg-white rounded-[2.8rem] shadow-2xl border border-slate-200 p-2 flex items-center gap-2 ring-1 ring-slate-100">
             <input type="text" placeholder="Entrer un mot..." className="flex-1 bg-transparent px-6 py-4 outline-none text-slate-800 font-light italic tracking-tight placeholder:text-slate-300" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleNewWord(inputValue)} disabled={isLoading} />
             <button onClick={startRecognition} className={`p-5 rounded-3xl transition-all ${isListening ? 'bg-red-500 text-white animate-pulse shadow-xl' : 'bg-slate-50 text-slate-400 hover:bg-sky-50'}`}><Mic size={24} strokeWidth={1.2} /></button>
-            <button onClick={() => handleNewWord(inputValue)} disabled={isLoading || !inputValue.trim()} className="bg-sky-500 text-white p-5 rounded-3xl shadow-2xl shadow-sky-200 hover:bg-sky-600 disabled:opacity-50 min-w-[76px] flex items-center justify-center transition-all">
+            <button onClick={() => handleNewWord(inputValue)} disabled={isLoading || !inputValue.trim()} className="bg-sky-500 text-white p-5 rounded-3xl shadow-2xl shadow-sky-200 hover:bg-sky-600 disabled:opacity-50 min-w-[76px] flex items-center justify-center transition-all font-light tracking-tight">
               {isLoading ? <Loader2 size={24} className="animate-spin" /> : <Plus size={24} strokeWidth={1.2} />}
             </button>
           </div>
@@ -470,9 +501,12 @@ export default function App() {
       )}
 
       {error && (
-        <div className="fixed top-24 left-4 right-4 max-w-md mx-auto bg-red-600 text-white p-5 rounded-3xl shadow-2xl flex justify-between items-center z-[110] animate-in slide-in-from-top font-light">
-          <span className="text-sm">{error}</span>
-          <button onClick={() => setError(null)}><X size={16} strokeWidth={1.2} /></button>
+        <div className="fixed top-24 left-4 right-4 max-w-md mx-auto bg-red-600 text-white p-5 rounded-3xl shadow-2xl flex justify-between items-center z-[110] animate-in slide-in-from-top font-light tracking-tight">
+          <div className="flex items-center gap-3">
+            <Info size={18} strokeWidth={1.5} />
+            <span className="text-sm">{error}</span>
+          </div>
+          <button onClick={() => setError(null)} className="p-1 hover:bg-white/20 rounded-lg transition-colors"><X size={16} strokeWidth={1.5} /></button>
         </div>
       )}
     </div>
