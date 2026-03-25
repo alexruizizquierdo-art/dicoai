@@ -1,0 +1,480 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  deleteDoc, 
+  doc,
+  updateDoc
+} from 'firebase/firestore';
+import { 
+  getAuth, 
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithCustomToken,
+  signInAnonymously,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut
+} from 'firebase/auth';
+import { 
+  Mic, 
+  MicOff, 
+  Plus, 
+  Volume2, 
+  Trash2, 
+  Search, 
+  Loader2, 
+  Car, 
+  X, 
+  Sparkles, 
+  BrainCircuit, 
+  Lightbulb, 
+  CheckCircle2, 
+  Headphones, 
+  SpellCheck, 
+  AlertTriangle, 
+  ChevronLeft, 
+  BookOpen,
+  LogOut,
+  Mail,
+  Lock,
+  ArrowRight
+} from 'lucide-react';
+
+// --- CONFIGURATION FIREBASE ---
+// Utilise la configuration de l'environnement pour l'aperçu ou une config vide pour l'export
+const firebaseConfig = typeof __firebase_config !== 'undefined' 
+  ? JSON.parse(__firebase_config) 
+  : { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'dico-ai-alex';
+
+// Clé API Gemini (gérée automatiquement dans cet environnement)
+const apiKey = ""; 
+
+// --- UTILITAIRES ---
+
+function pcmToWav(pcmBase64, sampleRate = 24000) {
+  const byteCharacters = atob(pcmBase64);
+  const pcmData = new Int16Array(byteCharacters.length / 2);
+  for (let i = 0; i < pcmData.length; i++) {
+    pcmData[i] = (byteCharacters.charCodeAt(i * 2 + 1) << 8) | byteCharacters.charCodeAt(i * 2);
+  }
+  const buffer = new ArrayBuffer(44 + pcmData.length * 2);
+  const view = new DataView(buffer);
+  const writeString = (offset, string) => {
+    for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+  };
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + pcmData.length * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, pcmData.length * 2, true);
+  for (let i = 0; i < pcmData.length; i++) view.setInt16(44 + i * 2, pcmData[i], true);
+  return new Blob([view], { type: 'audio/wav' });
+}
+
+const DicoLogo = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M2 6c0-2 2-3 4-3s4 1 6 3c2-2 4-3 6-3s4 1 4 3v12c0 2-2 3-4 3s-4-1-6-3c-2 2-4 3-6 3s-4-1-4-3V6z" />
+    <path d="M12 6v12" />
+    <path d="M6 8h2" opacity="0.4" />
+    <path d="M16 8h2" opacity="0.4" />
+  </svg>
+);
+
+// --- COMPOSANTS ---
+
+const SwipeableWordCard = ({ word, onSpeak, onEnrich, onDelete, isDrivingMode }) => {
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isSwiped, setIsSwiped] = useState(false);
+  const threshold = -80;
+
+  const onTouchStart = (e) => {
+    if (isDrivingMode) return;
+    setStartX(e.touches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    if (isDrivingMode) return;
+    const x = e.touches[0].clientX - startX;
+    if (x < 0) setCurrentX(x);
+  };
+
+  const onTouchEnd = () => {
+    if (currentX < threshold) {
+      setIsSwiped(true);
+      setCurrentX(-100);
+    } else {
+      setIsSwiped(false);
+      setCurrentX(0);
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-[2rem] mb-4 group shadow-sm font-light tracking-tight">
+      <div className="absolute inset-0 bg-red-500 flex items-center justify-end px-8 transition-opacity" style={{ opacity: currentX < -20 ? 1 : 0 }}>
+        <button onClick={() => onDelete(word)} className="text-white flex flex-col items-center gap-1">
+          <Trash2 size={24} strokeWidth={1.2} />
+          <span className="text-[10px] uppercase">Effacer</span>
+        </button>
+      </div>
+
+      <div 
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        style={{ transform: `translateX(${currentX}px)` }}
+        className={`p-6 transition-transform duration-200 ease-out relative z-10 border border-slate-100 ${isDrivingMode ? 'bg-sky-950 border-sky-900 text-white' : 'bg-white text-slate-900'}`}
+      >
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-light text-2xl capitalize italic">{word.term}</h3>
+              {word.originalInput && <div className="text-amber-500"><SpellCheck size={14} strokeWidth={1.2} /></div>}
+              {word.enriched && <Sparkles size={14} className="text-amber-400 animate-pulse" />}
+              {!isDrivingMode && !isSwiped && currentX === 0 && (
+                 <ChevronLeft size={16} className="text-slate-200 ml-auto opacity-50 group-hover:translate-x-[-4px] transition-transform" />
+              )}
+            </div>
+            <p className="text-sm font-light leading-relaxed opacity-80 tracking-tight">{word.definition}</p>
+            {word.enriched && (
+              <div className="space-y-3 pt-4 mt-4 border-t border-slate-50">
+                {word.synonyms && <p className="text-xs italic opacity-70">Synonymes : {word.synonyms}</p>}
+                {word.example && <p className="bg-sky-50/10 p-3 rounded-xl text-xs italic opacity-90 border-l-2 border-sky-400">"{word.example}"</p>}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 ml-4">
+            <button onClick={() => onSpeak(word)} className="p-3 bg-sky-50 text-sky-600 rounded-2xl hover:bg-sky-500 hover:text-white transition-all shadow-sm"><Volume2 size={20} strokeWidth={1.2} /></button>
+            {!word.enriched && !isDrivingMode && (
+               <button onClick={() => onEnrich(word)} className="p-3 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-600 hover:text-white transition-all shadow-sm"><Lightbulb size={20} strokeWidth={1.2} /></button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [words, setWords] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [isDrivingMode, setIsDrivingMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [quizMode, setQuizMode] = useState(false);
+  const [quizData, setQuizData] = useState(null);
+  const [quizFeedback, setQuizFeedback] = useState(null);
+  const [wordToDelete, setWordToDelete] = useState(null);
+  
+  const [authMode, setAuthMode] = useState('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const recognitionRef = useRef(null);
+  const audioRef = useRef(null);
+
+  // Initialisation Auth
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          // Pour permettre le test immédiat sans login obligatoire dans l'aperçu si on le souhaite
+          // await signInAnonymously(auth); 
+        }
+      } catch (err) {
+        console.error("Auth error:", err);
+      }
+    };
+    initAuth();
+    return onAuthStateChanged(auth, setUser);
+  }, []);
+
+  // Sync Firestore
+  useEffect(() => {
+    if (!user) return;
+    const q = collection(db, 'artifacts', appId, 'users', user.uid, 'dictionary');
+    return onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setWords(list.sort((a, b) => b.createdAt - a.createdAt));
+    }, (err) => {
+      console.error("Firestore Error:", err);
+      setError("Erreur de synchronisation Cloud.");
+    });
+  }, [user]);
+
+  // Appels Gemini
+  const callGemini = async (prompt, systemPrompt = "") => {
+    let retries = 0;
+    while (retries < 5) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            contents: [{ parts: [{ text: prompt }] }],
+            systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined
+          })
+        });
+        const data = await response.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text;
+      } catch (err) {
+        retries++;
+        await new Promise(r => setTimeout(r, Math.pow(2, retries) * 1000));
+      }
+    }
+    return null;
+  };
+
+  const speak = async (text, onEnd) => {
+    if (audioRef.current) audioRef.current.pause();
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+          }
+        })
+      });
+      const result = await response.json();
+      const data = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (data) {
+        const audio = new Audio(URL.createObjectURL(pcmToWav(data)));
+        audioRef.current = audio;
+        audio.onended = onEnd;
+        audio.play();
+      } else { onEnd?.(); }
+    } catch { 
+      const ut = new SpeechSynthesisUtterance(text);
+      ut.lang = 'fr-FR';
+      ut.onend = onEnd;
+      window.speechSynthesis.speak(ut);
+    }
+  };
+
+  const handleNewWord = async (term) => {
+    if (!term || !user || term.length < 2) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const corrected = await callGemini(`Corrige l'orthographe: "${term}". Réponds uniquement par le mot.`);
+      const final = corrected?.trim() || term.trim();
+      const definition = await callGemini(`Définition courte (<15 mots) pour "${final}".`);
+      
+      await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'dictionary'), {
+        term: final,
+        originalInput: term.trim() !== final ? term.trim() : null,
+        definition: definition || "Définition indisponible",
+        createdAt: Date.now(),
+        enriched: false
+      });
+      
+      setInputValue('');
+      speak(definition || final, () => isDrivingMode && startRecognition());
+    } catch { setError("Erreur réseau"); } finally { setIsLoading(false); }
+  };
+
+  const startRecognition = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (recognitionRef.current) recognitionRef.current.stop();
+    const r = new SR();
+    r.lang = 'fr-FR';
+    r.onstart = () => setIsListening(true);
+    r.onend = () => setIsListening(false);
+    r.onresult = (e) => handleNewWord(e.results[0][0].transcript);
+    recognitionRef.current = r;
+    r.start();
+  };
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      if (authMode === 'login') {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+    } catch { setError("Identifiants incorrects ou erreur réseau."); } finally { setIsLoading(false); }
+  };
+
+  const handleGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  };
+
+  // --- RENDU AUTH ---
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 font-light tracking-tight flex flex-col items-center justify-center p-6 text-slate-900">
+        <div className="max-w-sm w-full space-y-8 animate-in fade-in duration-700">
+          <div className="text-center space-y-4">
+            <div className="bg-sky-500 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-sky-500/40 text-white">
+              <DicoLogo className="w-12 h-12" />
+            </div>
+            <h1 className="text-5xl font-light italic tracking-tight text-sky-600">DICO AI</h1>
+            <p className="text-slate-400 font-light italic">Votre dictionnaire intelligent et personnel.</p>
+          </div>
+
+          <form onSubmit={handleAuth} className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 space-y-6">
+            <div className="space-y-3">
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} strokeWidth={1.2} />
+                <input type="email" placeholder="Email" required className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} strokeWidth={1.2} />
+                <input type="password" placeholder="Mot de passe" required className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light" value={password} onChange={(e) => setPassword(e.target.value)} />
+              </div>
+            </div>
+            <button type="submit" disabled={isLoading} className="w-full bg-sky-500 text-white py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-sky-600 transition-all shadow-lg shadow-sky-100 font-light">
+              {isLoading ? <Loader2 size={20} className="animate-spin" /> : (authMode === 'login' ? 'Se connecter' : "S'inscrire")}
+              <ArrowRight size={18} />
+            </button>
+            <button type="button" onClick={handleGoogle} className="w-full border border-slate-100 py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-50 transition-all font-light">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="G" /> Continuer avec Google
+            </button>
+          </form>
+
+          <p className="text-center text-sm font-light text-slate-400 italic">
+            {authMode === 'login' ? "Nouveau sur DICO AI ?" : "Déjà un compte ?"} 
+            <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="ml-2 text-sky-600 font-normal hover:underline">{authMode === 'login' ? "Créer un compte" : "Se connecter"}</button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDU PRINCIPAL ---
+  return (
+    <div className={`min-h-screen font-light tracking-tight pb-32 transition-all duration-700 ${isDrivingMode ? 'bg-sky-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
+      
+      {wordToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => setWordToDelete(null)}></div>
+          <div className="relative bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl border border-slate-100 text-center font-light">
+            <AlertTriangle size={48} strokeWidth={1.2} className="mx-auto text-red-500 mb-6" />
+            <h2 className="text-2xl font-light text-slate-900 mb-2 italic">Effacer ?</h2>
+            <p className="text-slate-500 text-sm mb-8 font-light">Voulez-vous supprimer <span className="text-sky-600 font-normal italic">"{wordToDelete.term}"</span> définitivement ?</p>
+            <div className="grid grid-cols-2 gap-4">
+              <button onClick={() => setWordToDelete(null)} className="py-4 rounded-2xl text-slate-400 bg-slate-100 font-light">Non</button>
+              <button onClick={async () => { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dictionary', wordToDelete.id)); setWordToDelete(null); }} className="py-4 rounded-2xl text-white bg-red-500 shadow-lg shadow-red-100 font-light">Oui</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className={`${isDrivingMode ? 'bg-sky-900/80 border-b border-sky-800' : 'bg-white shadow-sm'} p-6 rounded-b-[2.5rem] sticky top-0 z-30 backdrop-blur-md transition-colors`}>
+        <div className="max-w-md mx-auto flex items-center justify-between font-light">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-2xl ${isDrivingMode ? 'bg-sky-500 shadow-sky-500/50' : 'bg-sky-400 shadow-sky-400/30'} text-white shadow-xl`}>
+              <DicoLogo className="w-8 h-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-light tracking-tight italic leading-none">DICO AI</h1>
+              <p className={`text-[9px] font-light uppercase tracking-[0.2em] mt-1 ${isDrivingMode ? 'text-sky-300' : 'text-slate-400'}`}>Édition Premium ✨</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {!isDrivingMode && <button onClick={() => setQuizMode(!quizMode)} className="p-2.5 bg-sky-50 text-sky-600 rounded-xl hover:bg-sky-100 transition-colors"><BrainCircuit size={20} strokeWidth={1.2} /></button>}
+            <button onClick={() => signOut(auth)} className="p-2.5 text-slate-300 hover:text-red-400 transition-colors" title="Déconnexion"><LogOut size={20} strokeWidth={1.2} /></button>
+            <button onClick={() => { setIsDrivingMode(!isDrivingMode); if (!isDrivingMode) speak("Mode DICO AI activé."); }} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm transition-all ${isDrivingMode ? 'bg-orange-500 shadow-lg animate-pulse text-white' : 'bg-slate-100 text-slate-600'}`}><Car size={18} strokeWidth={1.2} /> {isDrivingMode ? 'ON' : 'OFF'}</button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-md mx-auto p-4 space-y-6">
+        {isDrivingMode ? (
+          <div className="py-20 text-center space-y-10 animate-in fade-in duration-500">
+            <div className={`w-40 h-40 mx-auto rounded-full flex items-center justify-center transition-all duration-500 ${isListening ? 'bg-orange-500 shadow-[0_0_60px_rgba(249,115,22,0.6)] scale-110' : 'bg-sky-900/50 border border-sky-500/30'}`}>
+              <Mic size={56} className={isListening ? 'text-white' : 'text-sky-300'} strokeWidth={1.2} />
+            </div>
+            <h2 className="text-4xl font-light italic tracking-tight uppercase text-sky-200">Je vous écoute</h2>
+            <p className="text-sky-300 italic font-light opacity-70">Correction orthographique active</p>
+          </div>
+        ) : (
+          <>
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" size={18} strokeWidth={1.2} />
+              <input type="text" placeholder="Rechercher un mot..." className="w-full pl-12 pr-4 py-4 bg-white rounded-[2rem] shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-sky-400 transition-all font-light" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            </div>
+
+            <div className="space-y-0">
+              {words.filter(w => w.term.toLowerCase().includes(searchQuery.toLowerCase())).map((word) => (
+                <SwipeableWordCard 
+                  key={word.id} word={word} 
+                  isDrivingMode={isDrivingMode}
+                  onSpeak={(w) => speak(`${w.term}. ${w.definition}`)}
+                  onEnrich={async (w) => {
+                    setIsLoading(true);
+                    const prompt = `Génère 2 synonymes et 1 phrase d'exemple pour "${w.term}". Réponds en JSON: {"synonyms": "...", "example": "..."}`;
+                    const res = await callGemini(prompt, "Expert lexicographe.");
+                    if (res) {
+                      const data = JSON.parse(res.replace(/```json|```/g, "").trim());
+                      await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dictionary', w.id), { ...data, enriched: true });
+                    }
+                    setIsLoading(false);
+                  }}
+                  onDelete={setWordToDelete}
+                />
+              ))}
+              {words.length === 0 && !isLoading && (
+                <div className="py-24 text-center space-y-4 opacity-40 italic font-light">
+                  <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto"><BookOpen className="text-slate-400" strokeWidth={1.2} /></div>
+                  <p className="text-lg">Votre dictionnaire est vide.</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </main>
+
+      {!isDrivingMode && (
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent z-40">
+          <div className="max-w-md mx-auto bg-white rounded-[2.8rem] shadow-2xl border border-slate-200 p-2 flex items-center gap-2 ring-1 ring-slate-100">
+            <input type="text" placeholder="Entrer un mot..." className="flex-1 bg-transparent px-6 py-4 outline-none text-slate-800 font-light italic tracking-tight placeholder:text-slate-300" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleNewWord(inputValue)} disabled={isLoading} />
+            <button onClick={startRecognition} className={`p-5 rounded-3xl transition-all ${isListening ? 'bg-red-500 text-white animate-pulse shadow-xl' : 'bg-slate-50 text-slate-400 hover:bg-sky-50'}`}><Mic size={24} strokeWidth={1.2} /></button>
+            <button onClick={() => handleNewWord(inputValue)} disabled={isLoading || !inputValue.trim()} className="bg-sky-500 text-white p-5 rounded-3xl shadow-2xl shadow-sky-200 hover:bg-sky-600 disabled:opacity-50 min-w-[76px] flex items-center justify-center transition-all">
+              {isLoading ? <Loader2 size={24} className="animate-spin" /> : <Plus size={24} strokeWidth={1.2} />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="fixed top-24 left-4 right-4 max-w-md mx-auto bg-red-600 text-white p-5 rounded-3xl shadow-2xl flex justify-between items-center z-[110] animate-in slide-in-from-top font-light">
+          <span className="text-sm">{error}</span>
+          <button onClick={() => setError(null)}><X size={16} strokeWidth={1.2} /></button>
+        </div>
+      )}
+    </div>
+  );
+}
