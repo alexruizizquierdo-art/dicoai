@@ -49,7 +49,6 @@ import {
 } from 'lucide-react';
 
 // --- CONFIGURATION FIREBASE ---
-// Note pour Alex : Pour GitHub, tu devras remplir cet objet avec tes vraies clés Firebase.
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
   ? JSON.parse(__firebase_config) 
   : { 
@@ -66,7 +65,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'dico-ai-alex';
 
-// Clé API Gemini
 const apiKey = ""; 
 
 // --- UTILITAIRES ---
@@ -99,8 +97,18 @@ function pcmToWav(pcmBase64, sampleRate = 24000) {
   return new Blob([view], { type: 'audio/wav' });
 }
 
+// Logo SVG (Livre ouvert avec contraintes de taille pour éviter l'effet géant)
 const DicoLogo = ({ className }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="1.2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+    style={{ maxWidth: '100%', height: 'auto' }}
+  >
     <path d="M2 6c0-2 2-3 4-3s4 1 6 3c2-2 4-3 6-3s4 1 4 3v12c0 2-2 3-4 3s-4-1-6-3c-2 2-4 3-6 3s-4-1-4-3V6z" />
     <path d="M12 6v12" />
     <path d="M6 8h2" opacity="0.4" />
@@ -203,7 +211,6 @@ export default function App() {
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
 
-  // Authentification Listener
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -224,7 +231,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Sync Données
   useEffect(() => {
     if (!user) return;
     const q = collection(db, 'artifacts', appId, 'users', user.uid, 'dictionary');
@@ -363,7 +369,7 @@ export default function App() {
             <div className="bg-sky-500 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-sky-500/20 text-white">
               <DicoLogo className="w-12 h-12" />
             </div>
-            <h1 className="text-5xl font-light italic tracking-tight text-sky-600">DICO AI</h1>
+            <h1 className="text-5xl font-light italic tracking-tight text-sky-600 uppercase">DICO AI</h1>
             <p className="text-slate-400 italic tracking-tight">Votre dictionnaire intelligent et personnel.</p>
           </div>
 
@@ -385,7 +391,7 @@ export default function App() {
             
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-slate-100"></div>
-              <span className="flex-shrink mx-4 text-slate-200 text-[10px] uppercase tracking-widest">Ou</span>
+              <span className="flex-shrink mx-4 text-slate-200 text-[10px] uppercase tracking-widest font-light">Ou</span>
               <div className="flex-grow border-t border-slate-100"></div>
             </div>
 
@@ -430,7 +436,7 @@ export default function App() {
               <DicoLogo className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-3xl font-light tracking-tight italic leading-none">DICO AI</h1>
+              <h1 className="text-3xl font-light tracking-tight italic leading-none uppercase text-sky-600">DICO AI</h1>
               <p className={`text-[9px] font-light uppercase tracking-[0.2em] mt-1 ${isDrivingMode ? 'text-sky-300' : 'text-slate-400'}`}>Édition Premium ✨</p>
             </div>
           </div>
@@ -449,7 +455,7 @@ export default function App() {
               <Mic size={56} className={isListening ? 'text-white' : 'text-sky-300'} strokeWidth={1.2} />
             </div>
             <h2 className="text-4xl font-light italic tracking-tight uppercase text-sky-200">Je vous écoute</h2>
-            <p className="text-sky-300 italic opacity-70 tracking-tight">Correction orthographique active</p>
+            <p className="text-sky-300 italic opacity-70 tracking-tight font-light">Correction orthographique active</p>
           </div>
         ) : (
           <>
@@ -480,7 +486,7 @@ export default function App() {
               {words.length === 0 && !isLoading && (
                 <div className="py-24 text-center space-y-4 opacity-40 italic tracking-tight font-light">
                   <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-inner"><BookOpen className="text-slate-400" strokeWidth={1} /></div>
-                  <p className="text-lg">Votre dictionnaire est vide.</p>
+                  <p className="text-lg font-light">Votre dictionnaire est vide.</p>
                 </div>
               )}
             </div>
