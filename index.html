@@ -189,21 +189,17 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- ZONE DE CONFIGURATION D'ALEX ---
-        // Remplace par tes identifiants Firebase de la console
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : { 
-                apiKey: "COLLE_TA_CLE_API_ICI", 
-                authDomain: "TON-PROJET.firebaseapp.com", 
-                projectId: "TON-ID-PROJET",
-                storageBucket: "TON-PROJET.appspot.com",
-                messagingSenderId: "00000000000",
-                appId: "1:00000000000:web:abcdef"
-            };
+        // --- CONFIGURATION D'ALEX ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyDS-n8NcoNTJ21FUb_MdOaPnX75EW2KIh8",
+            authDomain: "dico-ai.firebaseapp.com",
+            projectId: "dico-ai",
+            storageBucket: "dico-ai.firebasestorage.app",
+            messagingSenderId: "1083255726513",
+            appId: "1:1083255726513:web:21d2af14a9efd449b0dd90"
+        };
         
-        // Remplace par ta clé Gemini générée sur Google AI Studio
-        const geminiApiKey = ""; 
+        const geminiApiKey = "AIzaSyAWd2ngVsAjWevdOjOE-pByEhEifiidEi4"; 
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'dico-ai-alex';
 
@@ -275,16 +271,16 @@
             useEffect(() => {
                 const initAuth = async () => {
                     try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await auth.signInWithCustomToken(__initial_auth_token);
-                        } else if (!auth.currentUser) {
-                            if (firebaseConfig.apiKey === "demo" || firebaseConfig.apiKey === "COLLE_TA_CLE_API_ICI") {
-                                console.log("Mode démo ou config incomplète");
-                            } else {
+                        const isCustomConfig = firebaseConfig.apiKey !== "AIzaSyDS-n8NcoNTJ21FUb_MdOaPnX75EW2KIh8";
+                        
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && !isCustomConfig) {
+                            try {
+                                await auth.signInWithCustomToken(__initial_auth_token);
+                            } catch (e) {
                                 await auth.signInAnonymously();
                             }
                         }
-                    } catch (e) { console.error(e); }
+                    } catch (e) { console.error("Auth Init Error:", e); }
                     finally { setIsReady(true); }
                 };
                 initAuth();
@@ -295,7 +291,7 @@
             }, []);
 
             useEffect(() => {
-                if (user && firebaseConfig.apiKey !== "demo" && firebaseConfig.apiKey !== "COLLE_TA_CLE_API_ICI") {
+                if (user) {
                     const path = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary');
                     return path.onSnapshot(snap => setWords(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
                 }
@@ -307,8 +303,18 @@
                     (w.definition && w.definition.toLowerCase().includes(search.toLowerCase()))
                 );
                 if (activeTab !== 'all') res = res.filter(w => w.category === activeTab);
-                return res.sort((a, b) => a.term.localeCompare(b.term));
+                return res.sort((a, b) => (a.term || "").localeCompare(b.term || ""));
             }, [words, search, activeTab]);
+
+            const handleSpeak = (text, lang = 'fr-FR') => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = lang;
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
 
             const handleAdd = async () => {
                 if (!inputValue.trim() || loading || !user) return;
@@ -329,22 +335,26 @@
                     const data = await res.json();
                     const result = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
                     
-                    if (firebaseConfig.apiKey !== "demo" && firebaseConfig.apiKey !== "COLLE_TA_CLE_API_ICI") {
+                    if (user) {
                         await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
-                    } else {
-                        // Simulation locale pour le test si pas de config
-                        setWords(prev => [...prev, { id: Date.now().toString(), ...result }]);
                     }
                     setInputValue('');
                 } catch (e) { console.error(e); } finally { setLoading(false); }
             };
 
-            const handleExplorer = async () => {
-                if (firebaseConfig.apiKey === "demo" || firebaseConfig.apiKey === "COLLE_TA_CLE_API_ICI") {
-                    setUser({ uid: 'alex-demo-user' });
-                } else {
-                    await auth.signInAnonymously();
+            const handleGoogleSignIn = async () => {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                try {
+                    await auth.signInWithPopup(provider);
+                } catch (e) {
+                    console.error("Google Sign-in Error:", e);
                 }
+            };
+
+            const handleAnonymousSignIn = async () => {
+                try {
+                    await auth.signInAnonymously();
+                } catch(e) { console.error(e); }
             };
 
             if (!isReady) return null;
@@ -354,20 +364,39 @@
                     <div className="mb-6 flex justify-center w-full">
                         <DicoLogo size={Math.min(280, window.innerWidth * 0.7)} animated={true} />
                     </div>
-                    <p className="text-slate-300 text-base font-light tracking-wide mt-10">L'encyclopédie personnelle épurée.</p>
-                    <button 
-                        onClick={handleExplorer}
-                        className="mt-20 w-full max-w-[240px] bg-sky-500 text-white py-5 rounded-[2rem] shadow-xl active:scale-95 transition-all text-[11px] font-light tracking-[0.4em] uppercase"
-                    >
-                        Explorer
-                    </button>
+                    <div className="space-y-4 mb-12">
+                        {/* Suppression du doublon DiCO Ai ici car il est présent dans le logo animé */}
+                        <p className="text-slate-300 text-base font-light tracking-wide">L'encyclopédie universelle épurée.</p>
+                    </div>
+                    
+                    <div className="w-full max-w-[280px] space-y-4">
+                        <button 
+                            onClick={handleGoogleSignIn}
+                            className="w-full bg-white text-slate-600 py-5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-center gap-3 active:scale-95 transition-all text-[11px] font-light tracking-widest uppercase"
+                        >
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="G" />
+                            Se connecter avec Google
+                        </button>
+                        
+                        <button 
+                            onClick={handleAnonymousSignIn}
+                            className="w-full bg-sky-500 text-white py-5 rounded-[2rem] shadow-xl shadow-sky-100 active:scale-95 transition-all text-[11px] font-light tracking-[0.4em] uppercase"
+                        >
+                            Mode Invité
+                        </button>
+                    </div>
                 </div>
             );
 
             return (
                 <div className="flex-1 flex flex-col bg-[#fdfdfd] overflow-hidden">
                     <header className="p-6 pt-10 flex items-center justify-between z-30">
-                        <DicoLogo size={Math.min(84, window.innerWidth * 0.2)} animated={false} />
+                        <div className="flex items-center gap-4">
+                            <DicoLogo size={Math.min(84, window.innerWidth * 0.2)} animated={false} />
+                            {user.photoURL && (
+                                <img src={user.photoURL} className="w-8 h-8 rounded-full border border-white shadow-sm" alt="U" />
+                            )}
+                        </div>
                         <button onClick={() => { auth.signOut(); setUser(null); }} className="text-slate-300 p-2 hover:text-rose-400 transition-colors"><SimpleIcon name="logout" className="w-6 h-6" /></button>
                     </header>
 
@@ -393,13 +422,17 @@
                             {filteredData.map(w => (
                                 <div key={w.id} className="p-8 card-premium animate-in fade-in slide-in-from-bottom-2">
                                     <div className="flex justify-between items-start mb-4">
-                                        <span className="text-[10px] uppercase tracking-[0.2em] text-sky-400 font-light bg-sky-50 px-3 py-1 rounded-full">{w.category}</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] uppercase tracking-[0.2em] text-sky-400 font-light bg-sky-50 px-3 py-1 rounded-full">{w.category}</span>
+                                            <button 
+                                                onClick={() => handleSpeak(`${w.term}. ${w.definition}`)} 
+                                                className="text-sky-200 hover:text-sky-500 transition-colors p-1"
+                                            >
+                                                <SimpleIcon name="volume" className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                         <button onClick={() => {
-                                            if (firebaseConfig.apiKey !== "demo" && firebaseConfig.apiKey !== "COLLE_TA_CLE_API_ICI") {
-                                                db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete();
-                                            } else {
-                                                setWords(prev => prev.filter(item => item.id !== w.id));
-                                            }
+                                            db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete();
                                         }} className="text-slate-100 hover:text-rose-400 p-1"><SimpleIcon name="trash" className="w-4 h-4" /></button>
                                     </div>
                                     <h3 className="text-2xl font-light tracking-tight capitalize mb-2">{w.term}</h3>
@@ -410,7 +443,13 @@
                                                 <SimpleIcon name="globe" className="w-3.5 h-3.5" />
                                                 <span className="text-[9px] uppercase tracking-[0.2em] font-light">Traduction : {w.translation.lang}</span>
                                             </div>
-                                            <div className="text-lg font-light text-slate-400 italic leading-tight">{w.translation.text}</div>
+                                            <div 
+                                                className="text-lg font-light text-slate-400 italic leading-tight flex items-center gap-2 cursor-pointer hover:text-sky-500 transition-colors"
+                                                onClick={() => handleSpeak(w.translation.text, w.translation.code || 'en-US')}
+                                            >
+                                                {w.translation.text}
+                                                <SimpleIcon name="volume" className="w-3 h-3 opacity-30" />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
