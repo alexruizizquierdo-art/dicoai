@@ -37,7 +37,7 @@
             margin: 0; padding: 0; 
             width: 100%; height: 100%; 
             background-color: #ffffff; 
-            overflow-x: hidden; /* Empêche le dépassement horizontal */
+            overflow-x: hidden; 
         }
 
         #root { width: 100%; height: 100%; display: flex; flex-direction: column; }
@@ -76,7 +76,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            max-width: 90vw; /* Sécurité mobile */
+            max-width: 90vw; 
         }
 
         .alex-frame-box {
@@ -125,7 +125,7 @@
             position: absolute;
             inset: 0;
             background: #ffffff;
-            border: 2px solid #0ea5e9;
+            border: 2.5px solid #0ea5e9;
             border-radius: 3px;
             transform-origin: left center;
             z-index: 40;
@@ -189,11 +189,22 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
+        // --- ZONE DE CONFIGURATION D'ALEX ---
+        // Remplace par tes identifiants Firebase de la console
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
-            : { apiKey: "demo", projectId: "demo" };
+            : { 
+                apiKey: "COLLE_TA_CLE_API_ICI", 
+                authDomain: "TON-PROJET.firebaseapp.com", 
+                projectId: "TON-ID-PROJET",
+                storageBucket: "TON-PROJET.appspot.com",
+                messagingSenderId: "00000000000",
+                appId: "1:00000000000:web:abcdef"
+            };
         
+        // Remplace par ta clé Gemini générée sur Google AI Studio
         const geminiApiKey = ""; 
+
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'dico-ai-alex';
 
         if (!firebase.apps.length) {
@@ -211,7 +222,6 @@
             { id: 'ar', name: 'Arabe', code: 'ar-SA' }
         ];
 
-        // --- LOGO RÉPONDANT À LA TAILLE ÉCRAN ---
         const DicoLogo = ({ size = 90, animated = true }) => {
             return (
                 <div className={`book-container ${animated ? 'anim-slide-in' : ''}`} style={{ width: size, height: size }}>
@@ -268,9 +278,8 @@
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await auth.signInWithCustomToken(__initial_auth_token);
                         } else if (!auth.currentUser) {
-                            // En mode démo, on simule une connexion si anonyme échoue
-                            if (firebaseConfig.apiKey === "demo") {
-                                console.log("Mode démo activé");
+                            if (firebaseConfig.apiKey === "demo" || firebaseConfig.apiKey === "COLLE_TA_CLE_API_ICI") {
+                                console.log("Mode démo ou config incomplète");
                             } else {
                                 await auth.signInAnonymously();
                             }
@@ -286,7 +295,7 @@
             }, []);
 
             useEffect(() => {
-                if (user && firebaseConfig.apiKey !== "demo") {
+                if (user && firebaseConfig.apiKey !== "demo" && firebaseConfig.apiKey !== "COLLE_TA_CLE_API_ICI") {
                     const path = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary');
                     return path.onSnapshot(snap => setWords(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
                 }
@@ -319,14 +328,19 @@
                     });
                     const data = await res.json();
                     const result = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
-                    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
+                    
+                    if (firebaseConfig.apiKey !== "demo" && firebaseConfig.apiKey !== "COLLE_TA_CLE_API_ICI") {
+                        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
+                    } else {
+                        // Simulation locale pour le test si pas de config
+                        setWords(prev => [...prev, { id: Date.now().toString(), ...result }]);
+                    }
                     setInputValue('');
                 } catch (e) { console.error(e); } finally { setLoading(false); }
             };
 
             const handleExplorer = async () => {
-                if (firebaseConfig.apiKey === "demo") {
-                    // Simuler un utilisateur pour passer l'écran d'accueil en Canvas
+                if (firebaseConfig.apiKey === "demo" || firebaseConfig.apiKey === "COLLE_TA_CLE_API_ICI") {
                     setUser({ uid: 'alex-demo-user' });
                 } else {
                     await auth.signInAnonymously();
@@ -338,7 +352,6 @@
             if (!user) return (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 bg-white text-center">
                     <div className="mb-6 flex justify-center w-full">
-                        {/* Taille adaptative : maximum 280px, mais 70% de la largeur écran sur mobile */}
                         <DicoLogo size={Math.min(280, window.innerWidth * 0.7)} animated={true} />
                     </div>
                     <p className="text-slate-300 text-base font-light tracking-wide mt-10">L'encyclopédie personnelle épurée.</p>
@@ -355,7 +368,7 @@
                 <div className="flex-1 flex flex-col bg-[#fdfdfd] overflow-hidden">
                     <header className="p-6 pt-10 flex items-center justify-between z-30">
                         <DicoLogo size={Math.min(84, window.innerWidth * 0.2)} animated={false} />
-                        <button onClick={() => auth.signOut() || setUser(null)} className="text-slate-300 p-2 hover:text-rose-400 transition-colors"><SimpleIcon name="logout" className="w-6 h-6" /></button>
+                        <button onClick={() => { auth.signOut(); setUser(null); }} className="text-slate-300 p-2 hover:text-rose-400 transition-colors"><SimpleIcon name="logout" className="w-6 h-6" /></button>
                     </header>
 
                     <main className="p-6 flex-1 space-y-6 overflow-y-auto no-scrollbar pb-60">
@@ -381,7 +394,13 @@
                                 <div key={w.id} className="p-8 card-premium animate-in fade-in slide-in-from-bottom-2">
                                     <div className="flex justify-between items-start mb-4">
                                         <span className="text-[10px] uppercase tracking-[0.2em] text-sky-400 font-light bg-sky-50 px-3 py-1 rounded-full">{w.category}</span>
-                                        <button onClick={() => db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete()} className="text-slate-100 hover:text-rose-400 p-1"><SimpleIcon name="trash" className="w-4 h-4" /></button>
+                                        <button onClick={() => {
+                                            if (firebaseConfig.apiKey !== "demo" && firebaseConfig.apiKey !== "COLLE_TA_CLE_API_ICI") {
+                                                db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete();
+                                            } else {
+                                                setWords(prev => prev.filter(item => item.id !== w.id));
+                                            }
+                                        }} className="text-slate-100 hover:text-rose-400 p-1"><SimpleIcon name="trash" className="w-4 h-4" /></button>
                                     </div>
                                     <h3 className="text-2xl font-light tracking-tight capitalize mb-2">{w.term}</h3>
                                     <p className="text-base opacity-50 leading-relaxed font-light mb-6">{w.definition}</p>
