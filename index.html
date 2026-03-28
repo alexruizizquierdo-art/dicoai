@@ -11,11 +11,11 @@
     <meta name="apple-mobile-web-app-title" content="DiCO Ai">
     <meta name="theme-color" content="#0ea5e9">
     
-    <!-- Icône pour l'écran d'accueil iOS -->
-    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/512/book.png">
+    <!-- Icône pour l'écran d'accueil iOS (Livre bleu) -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/512/blue-book.png">
     
     <!-- Configuration Manifeste -->
-    <link rel="manifest" href='data:application/json,{"name":"DiCO Ai","short_name":"DiCO Ai","start_url":".","display":"standalone","background_color":"#f8fafc","theme_color":"#0ea5e9","icons":[{"src":"https://img.icons8.com/fluency/512/book.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}'>
+    <link rel="manifest" href='data:application/json,{"name":"DiCO Ai","short_name":"DiCO Ai","start_url":".","display":"standalone","background_color":"#f8fafc","theme_color":"#0ea5e9","icons":[{"src":"https://img.icons8.com/fluency/512/blue-book.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}'>
 
     <!-- Librairies Core -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -70,16 +70,13 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- CONFIGURATION ---
-        const firebaseConfig = {
-            apiKey: "TON_API_KEY",
-            authDomain: "TON_PROJET.firebaseapp.com",
-            projectId: "TON_PROJET_ID",
-            storageBucket: "TON_PROJET.appspot.com",
-            messagingSenderId: "TON_SENDER_ID",
-            appId: "TON_APP_ID"
-        };
-        const apiKey = ""; 
+        // --- CONFIGURATION AUTOMATIQUE ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : { apiKey: "demo", projectId: "demo" };
+        
+        const apiKey = ""; // Gemini API
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'dico-ai-alex';
 
         // Initialisation Firebase
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -87,7 +84,6 @@
         const db = firebase.firestore();
 
         // --- UTILITAIRE ICONES ---
-        // Ce composant remplace l'usage de i data-lucide pour éviter l'erreur removeChild
         const Icon = ({ name, className = "w-5 h-5", ...props }) => {
             const iconRef = useRef(null);
             useEffect(() => {
@@ -130,33 +126,6 @@
             return new Blob([view], { type: 'audio/wav' });
         };
 
-        // --- COMPOSANTS ---
-
-        const DicoLogo = ({ animated = false, size = "40px", color = "currentColor" }) => (
-            <div className={`book-perspective ${animated ? 'animate-logo-slide' : ''}`} style={{ width: size, height: size }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-                    <path d="M12 20c-3-1.5-7-1.5-10 0V6c3-1.5 7-1.5 10 0 3-1.5 7-1.5 10 0v14c-3-1.5-7-1.5-10 0z" fill={color} fillOpacity="0.1" />
-                    <line x1="12" y1="5" x2="12" y2="20" strokeWidth="1.5" opacity="0.8" />
-                    {animated && (
-                        <g className="animate-page-turn">
-                            <path d="M0 0c3.5-1.5 7-1.5 10 0v14c-3-1.5-7-1.5-10 0V0z" transform="translate(12, 5)" fill={color === "white" ? "#0ea5e9" : "white"} fillOpacity="0.95" stroke={color} />
-                        </g>
-                    )}
-                </svg>
-            </div>
-        );
-
-        const Toast = ({ msg, remove }) => {
-            useEffect(() => { const t = setTimeout(remove, 3000); return () => clearTimeout(t); }, []);
-            const bgColor = msg.type === 'error' ? 'bg-rose-500' : msg.type === 'info' ? 'bg-sky-600' : 'bg-emerald-500';
-            return (
-                <div className={`toast flex items-center gap-3 p-4 mb-2 rounded-2xl text-white shadow-xl ${bgColor}`}>
-                    <Icon name={msg.type === 'error' ? 'alert-circle' : 'check-circle'} />
-                    <span className="text-sm font-light">{msg.text}</span>
-                </div>
-            );
-        };
-
         const App = () => {
             const [user, setUser] = useState(null);
             const [isAuthReady, setIsAuthReady] = useState(false);
@@ -177,17 +146,34 @@
 
             const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
 
+            // AUTH INITIALIZATION
             useEffect(() => {
-                const unsub = auth.onAuthStateChanged(u => { setUser(u); setIsAuthReady(true); });
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await auth.signInWithCustomToken(__initial_auth_token);
+                        }
+                    } catch (e) {
+                        console.error("Auth init error:", e);
+                    } finally {
+                        setIsAuthReady(true);
+                    }
+                };
+                initAuth();
+                const unsub = auth.onAuthStateChanged(u => setUser(u));
                 return unsub;
             }, []);
 
+            // DATA FETCHING (Rule 1 & 3)
             useEffect(() => {
-                if (user && firebaseConfig.apiKey !== "TON_API_KEY") {
-                    return db.collection("users").doc(user.uid).collection("dictionary")
-                        .onSnapshot(snap => {
-                            setWords(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                        });
+                if (user) {
+                    const collectionPath = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary');
+                    return collectionPath.onSnapshot(snap => {
+                        setWords(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    }, err => {
+                        console.error("Firestore Error:", err);
+                        addToast("Erreur de synchronisation.", "error");
+                    });
                 }
             }, [user]);
 
@@ -206,8 +192,7 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                         });
-                        const data = await response.json();
-                        return data;
+                        return await response.json();
                     } catch (e) {
                         if (i === 4) throw e;
                         await new Promise(r => setTimeout(r, delay));
@@ -217,21 +202,23 @@
             };
 
             const handleAddEntry = async () => {
-                if (!inputValue.trim() || isLoading) return;
+                if (!inputValue.trim() || isLoading || !user) return;
                 setIsLoading(true);
                 try {
                     const prompt = `Analyse l'entrée suivante : "${inputValue}". Réponds UNIQUEMENT au format JSON : {"category": "mot" | "proverbe" | "personnage", "term": "corrigé", "definition": "sens précis", "example": "usage/fait", "details": "origine/dates"}`;
                     const data = await fetchGemini(prompt);
                     const aiResult = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
 
-                    await db.collection("users").doc(user.uid).collection("dictionary").add({
+                    const collectionPath = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary');
+                    await collectionPath.add({
                         ...aiResult,
                         createdAt: Date.now()
                     });
                     setInputValue('');
                     addToast(`"${aiResult.term}" ajouté.`);
-                } catch (e) { addToast("Erreur IA", "error"); }
-                finally { setIsLoading(false); }
+                } catch (e) { 
+                    addToast("Erreur IA.", "error"); 
+                } finally { setIsLoading(false); }
             };
 
             const speakGemini = async (text) => {
@@ -251,13 +238,12 @@
                     });
                     const result = await response.json();
                     const base64Audio = result.candidates[0].content.parts[0].inlineData.data;
-                    const blob = pcmToWav(base64Audio);
-                    const audio = new Audio(URL.createObjectURL(blob));
+                    const audio = new Audio(URL.createObjectURL(pcmToWav(base64Audio)));
                     audio.onended = () => setIsSpeaking(false);
                     audio.play();
                 } catch (e) {
                     setIsSpeaking(false);
-                    addToast("Erreur voix Gemini", "error");
+                    addToast("Erreur voix.", "error");
                 }
             };
 
@@ -265,8 +251,8 @@
                 setIsGeneratingImg(word.id);
                 try {
                     const promptText = word.category === 'personnage' 
-                        ? `Un portrait réaliste de ${word.term}, style historique, éclairage doux`
-                        : `Une illustration poétique du proverbe "${word.term}", style artistique`;
+                        ? `A realistic portrait of ${word.term}, historical style`
+                        : `A poetic illustration of the proverb "${word.term}"`;
                     
                     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
                         method: 'POST',
@@ -276,73 +262,48 @@
                     const result = await response.json();
                     const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
                     
-                    await db.collection("users").doc(user.uid).collection("dictionary").doc(word.id).update({ imageUrl });
+                    const docRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').doc(word.id);
+                    await docRef.update({ imageUrl });
                     addToast("Image générée ✨");
                 } catch (e) {
-                    addToast("Erreur d'image", "error");
+                    addToast("Erreur image.", "error");
                 } finally { setIsGeneratingImg(null); }
             };
 
-            const startQuiz = async () => {
-                if (words.length < 3) {
-                    addToast("Ajoute au moins 3 éléments pour un quiz !", "error");
-                    return;
-                }
-                setIsLoading(true);
-                try {
-                    const listStr = words.slice(0, 5).map(w => w.term).join(', ');
-                    const prompt = `Crée une question de quiz basée sur un de ces éléments : ${listStr}. Réponds en JSON : {"question": "...", "choices": ["A", "B", "C"], "correctIndex": 0}`;
-                    const data = await fetchGemini(prompt);
-                    const quizData = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
-                    setQuiz(quizData);
-                } catch (e) { addToast("Erreur Quiz", "error"); }
-                finally { setIsLoading(false); }
-            };
-
             const handleGuestAccess = async () => {
+                if (isLoading) return;
                 setIsLoading(true);
                 try {
                     await auth.signInAnonymously();
                     addToast("Mode invité activé ! ✨");
                 } catch (e) {
-                    addToast("Erreur d'accès invité", "error");
-                } finally {
-                    setIsLoading(false);
-                }
+                    addToast("Erreur d'accès.", "error");
+                } finally { setIsLoading(false); }
             };
 
-            if (!isAuthReady) return null;
+            if (!isAuthReady) return (
+                <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                    <div className="loader-spin border-sky-500"></div>
+                </div>
+            );
 
             if (!user) return (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 font-light overflow-hidden">
                     <div className="toast-container">{toasts.map(t => <Toast key={t.id} msg={t} remove={() => removeToast(t.id)} />)}</div>
                     <div className="text-center space-y-8 w-full max-w-sm">
                         <div className="mx-auto p-5 bg-sky-500 rounded-[2.5rem] shadow-2xl flex items-center justify-center overflow-hidden" style={{ width: '100px', height: '100px' }}>
-                            <DicoLogo animated={true} size="60px" color="white" />
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+                                <path d="M12 20c-3-1.5-7-1.5-10 0V6c3-1.5 7-1.5 10 0 3-1.5 7-1.5 10 0v14c-3-1.5-7-1.5-10 0z" fill="white" fillOpacity="0.1" />
+                                <line x1="12" y1="5" x2="12" y2="20" strokeWidth="1.5" opacity="0.8" />
+                            </svg>
                         </div>
                         <div className="space-y-2">
                             <h1 className="text-5xl font-light text-sky-600 tracking-tighter">DiCO Ai</h1>
-                            <p className="text-slate-400 text-sm leading-tight">L'intelligence au service de votre culture.</p>
+                            <p className="text-slate-400 text-sm leading-tight px-4">L'intelligence au service de votre culture.</p>
                         </div>
-                        
-                        <div className="space-y-4 pt-4">
-                            <button onClick={handleGuestAccess} className="w-full bg-sky-500 text-white p-5 rounded-3xl shadow-xl shadow-sky-100 flex items-center justify-center gap-3 btn-press font-light">
-                                {isLoading ? <div className="loader-spin"></div> : <><Icon name="play" /> Accès invité (Test rapide)</>}
-                            </button>
-                            
-                            <div className="flex items-center gap-4 py-2">
-                                <div className="flex-1 h-[1px] bg-slate-200"></div>
-                                <span className="text-[10px] text-slate-300 uppercase tracking-widest">Ou s'enregistrer</span>
-                                <div className="flex-1 h-[1px] bg-slate-200"></div>
-                            </div>
-
-                            <button onClick={() => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())} className="w-full bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-center gap-3 shadow-sm btn-press text-slate-600 font-light">
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5" />
-                                Continuer avec Google
-                            </button>
-                        </div>
-                        
-                        <p className="text-[10px] text-slate-300 px-8">En mode invité, vos données sont sauvegardées localement sur cet appareil.</p>
+                        <button onClick={handleGuestAccess} className="w-full bg-sky-500 text-white p-5 rounded-3xl shadow-xl shadow-sky-100 flex items-center justify-center gap-3 btn-press font-light transition-all">
+                            {isLoading ? <div className="loader-spin"></div> : <><Icon name="play" /> Accès invité (Test rapide)</>}
+                        </button>
                     </div>
                 </div>
             );
@@ -353,44 +314,20 @@
                     
                     <header className="p-6 pt-12 bg-sky-500 rounded-b-[2.5rem] sticky top-0 z-30 shadow-lg flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <DicoLogo animated={true} color="white" size="36px" />
+                            <div className="w-9 h-9 flex items-center justify-center">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.2" className="w-full h-full">
+                                    <path d="M12 20c-3-1.5-7-1.5-10 0V6c3-1.5 7-1.5 10 0 3-1.5 7-1.5 10 0v14c-3-1.5-7-1.5-10 0z" fill="white" fillOpacity="0.1" />
+                                </svg>
+                            </div>
                             <h1 className="text-2xl font-light text-white tracking-tight">DiCO Ai</h1>
                         </div>
-                        <div className="flex gap-2">
-                            {user.isAnonymous && <span className="bg-white/20 text-white text-[8px] uppercase px-2 py-1 rounded-md self-center">Invité</span>}
-                            <button onClick={startQuiz} className="bg-white/20 p-2 rounded-xl text-white hover:bg-white/30 transition-all btn-press">
-                                <Icon name="brain" />
-                            </button>
-                            <button onClick={() => auth.signOut()} className="text-white/70 p-2"><Icon name="log-out" /></button>
-                        </div>
+                        <button onClick={() => auth.signOut()} className="text-white/70 p-2 hover:text-white transition-colors"><Icon name="log-out" /></button>
                     </header>
-
-                    {quiz && (
-                        <div className="m-4 p-6 bg-amber-50 border border-amber-200 rounded-[2rem] animate-in zoom-in-95 duration-300">
-                            <div className="flex justify-between items-start mb-4">
-                                <h4 className="text-amber-800 font-medium">Quiz ✨</h4>
-                                <button onClick={() => setQuiz(null)}><Icon name="x" className="w-4 text-amber-400" /></button>
-                            </div>
-                            <p className="text-amber-900 mb-4">{quiz.question}</p>
-                            <div className="space-y-2">
-                                {quiz.choices.map((c, i) => (
-                                    <button key={i} onClick={() => {
-                                        if (i === quiz.correctIndex) {
-                                            addToast("Correct ! ✨", "success");
-                                            setQuiz(null);
-                                        } else addToast("Essaie encore !", "error");
-                                    }} className="w-full text-left p-3 bg-white border border-amber-100 rounded-xl text-sm hover:bg-amber-100 transition-all font-light">
-                                        {c}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     <main className="p-4 flex-1 space-y-4 pb-44">
                         <div className="relative">
                             <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4" />
-                            <input type="text" placeholder="Mots, proverbes, personnages..." className="w-full pl-10 p-4 bg-white rounded-2xl shadow-sm border-none outline-none font-light italic" value={search} onChange={e => setSearch(e.target.value)} />
+                            <input type="text" placeholder="Rechercher..." className="w-full pl-10 p-4 bg-white rounded-2xl shadow-sm border-none outline-none font-light italic focus:ring-1 focus:ring-sky-100 transition-all" value={search} onChange={e => setSearch(e.target.value)} />
                         </div>
 
                         <div className="space-y-4">
@@ -401,14 +338,12 @@
                                             w.category === 'proverbe' ? 'bg-emerald-50 text-emerald-600' : 
                                             w.category === 'personnage' ? 'bg-purple-50 text-purple-600' : 
                                             'bg-sky-50 text-sky-600'
-                                        }`}>
-                                            {w.category}
-                                        </span>
+                                        }`}>{w.category}</span>
                                         <div className="flex gap-2">
-                                            <button onClick={(e) => { e.stopPropagation(); speakGemini(`${w.term}. ${w.definition}`); }} className={`${isSpeaking ? 'text-amber-500 animate-pulse' : 'text-sky-300'} hover:text-sky-500 transition-colors`}>
+                                            <button onClick={(e) => { e.stopPropagation(); speakGemini(`${w.term}. ${w.definition}`); }} className={`${isSpeaking ? 'text-amber-500 animate-pulse' : 'text-sky-300'}`}>
                                                 <Icon name="volume-2" />
                                             </button>
-                                            <button onClick={(e) => { e.stopPropagation(); db.collection("users").doc(user.uid).collection("dictionary").doc(w.id).delete(); }} className="text-slate-100 hover:text-red-400"><Icon name="trash-2" className="w-4" /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete(); }} className="text-slate-100 hover:text-red-400"><Icon name="trash-2" className="w-4" /></button>
                                         </div>
                                     </div>
                                     <h3 className="text-2xl font-light text-slate-800 capitalize mb-1">{w.term}</h3>
@@ -419,29 +354,16 @@
                                             {w.imageUrl ? (
                                                 <img src={w.imageUrl} className="w-full aspect-square object-cover rounded-3xl shadow-lg" alt={w.term} />
                                             ) : (
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); generateImage(w); }} 
-                                                    disabled={isGeneratingImg === w.id}
-                                                    className="w-full p-4 bg-sky-50 border border-sky-100 rounded-3xl text-sky-600 text-xs flex items-center justify-center gap-2 hover:bg-sky-100 transition-all font-light"
-                                                >
+                                                <button onClick={(e) => { e.stopPropagation(); generateImage(w); }} disabled={isGeneratingImg === w.id} className="w-full p-4 bg-sky-50 border border-sky-100 rounded-3xl text-sky-600 text-xs flex items-center justify-center gap-2 hover:bg-sky-100 font-light">
                                                     {isGeneratingImg === w.id ? <div className="loader-spin"></div> : <><Icon name="sparkles" className="w-4" /> Illustrer avec l'IA ✨</>}
                                                 </button>
                                             )}
-
                                             <div className="bg-slate-50 p-4 rounded-2xl">
-                                                <p className="text-xs italic opacity-80">
-                                                    <strong>{w.category === 'personnage' ? 'Fait marquant : ' : 'Exemple : '}</strong>
-                                                    "{w.example}"
-                                                </p>
+                                                <p className="text-xs italic opacity-80 font-light tracking-tight">"{w.example}"</p>
                                             </div>
-                                            <div className="flex justify-between items-center">
-                                                <p className="text-[10px] text-slate-300 uppercase tracking-tighter">
-                                                    {w.category === 'personnage' ? 'Époque : ' : 'Origine : '} {w.details}
-                                                </p>
-                                                <button onClick={(e) => { e.stopPropagation(); speakGemini(`${w.term}. ${w.definition}. ${w.example}`); }} className="text-[10px] text-sky-400 flex items-center gap-1 font-light">
-                                                    Lire la bio complète ✨
-                                                </button>
-                                            </div>
+                                            <p className="text-[10px] text-slate-300 uppercase tracking-tighter">
+                                                {w.category === 'personnage' ? 'Époque : ' : 'Origine : '} {w.details}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -450,9 +372,9 @@
                     </main>
 
                     <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 to-transparent">
-                        <div className="max-w-md mx-auto bg-white rounded-[3rem] shadow-2xl p-2 flex items-center gap-2 border">
-                            <input type="text" placeholder="Un mot, un proverbe, un nom..." className="flex-1 px-6 py-4 outline-none font-light italic" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleAddEntry()} />
-                            <button onClick={handleAddEntry} className="bg-sky-500 text-white p-5 rounded-[2rem] shadow-xl min-w-[70px] flex items-center justify-center btn-press">
+                        <div className="max-w-md mx-auto bg-white rounded-[3rem] shadow-2xl p-2 flex items-center gap-2 border border-slate-100">
+                            <input type="text" placeholder="Mot, proverbe, personnage..." className="flex-1 px-6 py-4 outline-none font-light italic bg-transparent" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleAddEntry()} />
+                            <button onClick={handleAddEntry} className="bg-sky-500 text-white p-5 rounded-[2rem] shadow-xl min-w-[70px] flex items-center justify-center btn-press hover:bg-sky-600">
                                 {isLoading ? <div className="loader-spin"></div> : <Icon name="plus" className="w-6 h-6" />}
                             </button>
                         </div>
