@@ -37,14 +37,14 @@
             margin: 0; padding: 0; 
             width: 100%; height: 100%; 
             background-color: #ffffff; 
-            overflow: hidden; 
+            overflow-x: hidden; /* Empêche le dépassement horizontal */
         }
 
         #root { width: 100%; height: 100%; display: flex; flex-direction: column; }
 
         /* --- ANIMATIONS DU DICTIONNAIRE --- */
         @keyframes slideInFromRight {
-            0% { transform: translateX(120vw); opacity: 0; }
+            0% { transform: translateX(100%); opacity: 0; }
             100% { transform: translateX(0); opacity: 1; }
         }
 
@@ -76,6 +76,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            max-width: 90vw; /* Sécurité mobile */
         }
 
         .alex-frame-box {
@@ -124,7 +125,7 @@
             position: absolute;
             inset: 0;
             background: #ffffff;
-            border: 2.5px solid #0ea5e9;
+            border: 2px solid #0ea5e9;
             border-radius: 3px;
             transform-origin: left center;
             z-index: 40;
@@ -210,6 +211,7 @@
             { id: 'ar', name: 'Arabe', code: 'ar-SA' }
         ];
 
+        // --- LOGO RÉPONDANT À LA TAILLE ÉCRAN ---
         const DicoLogo = ({ size = 90, animated = true }) => {
             return (
                 <div className={`book-container ${animated ? 'anim-slide-in' : ''}`} style={{ width: size, height: size }}>
@@ -217,10 +219,21 @@
                         <div className="book-model">
                             <div className="book-spine" />
                             <div className="book-base-pages">
-                                <span className={`book-inner-title ${animated ? 'fade-in-inner-title' : ''}`} style={{ fontSize: size * 0.14, opacity: animated ? 0 : 1 }}>DiCO Ai</span>
+                                <span 
+                                    className={`book-inner-title ${animated ? 'fade-in-inner-title' : ''}`} 
+                                    style={{ 
+                                        fontSize: size * 0.14,
+                                        opacity: animated ? 0 : 1 
+                                    }}
+                                >
+                                    DiCO Ai
+                                </span>
                             </div>
                             {animated && <div className="book-turning-page anim-page-flip" />}
-                            <div className={`book-cover ${animated ? 'anim-open-cover' : ''}`} style={{ transform: animated ? 'rotateY(0deg)' : 'rotateY(-180deg)' }} />
+                            <div 
+                                className={`book-cover ${animated ? 'anim-open-cover' : ''}`} 
+                                style={{ transform: animated ? 'rotateY(0deg)' : 'rotateY(-180deg)' }}
+                            />
                         </div>
                     </div>
                 </div>
@@ -254,11 +267,22 @@
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await auth.signInWithCustomToken(__initial_auth_token);
-                        } else if (!auth.currentUser) { await auth.signInAnonymously(); }
-                    } catch (e) { console.error(e); } finally { setIsReady(true); }
+                        } else if (!auth.currentUser) {
+                            // En mode démo, on simule une connexion si anonyme échoue
+                            if (firebaseConfig.apiKey === "demo") {
+                                console.log("Mode démo activé");
+                            } else {
+                                await auth.signInAnonymously();
+                            }
+                        }
+                    } catch (e) { console.error(e); }
+                    finally { setIsReady(true); }
                 };
                 initAuth();
-                return auth.onAuthStateChanged(u => setUser(u));
+                const unsub = auth.onAuthStateChanged(u => {
+                    setUser(u);
+                });
+                return () => unsub();
             }, []);
 
             useEffect(() => {
@@ -268,29 +292,14 @@
                 }
             }, [user]);
 
-            // --- LOGIQUE DE TRI ET FILTRAGE PAR ONGLET ---
             const filteredData = useMemo(() => {
                 let res = words.filter(w => 
-                    w.term.toLowerCase().includes(search.toLowerCase()) || 
+                    w.term?.toLowerCase().includes(search.toLowerCase()) || 
                     (w.definition && w.definition.toLowerCase().includes(search.toLowerCase()))
                 );
-                
-                if (activeTab !== 'all') {
-                    res = res.filter(w => w.category === activeTab);
-                }
-
+                if (activeTab !== 'all') res = res.filter(w => w.category === activeTab);
                 return res.sort((a, b) => a.term.localeCompare(b.term));
             }, [words, search, activeTab]);
-
-            const handleSpeak = (text, lang = 'fr-FR') => {
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = lang;
-                    utterance.rate = 0.9;
-                    window.speechSynthesis.speak(utterance);
-                }
-            };
 
             const handleAdd = async () => {
                 if (!inputValue.trim() || loading || !user) return;
@@ -315,36 +324,52 @@
                 } catch (e) { console.error(e); } finally { setLoading(false); }
             };
 
+            const handleExplorer = async () => {
+                if (firebaseConfig.apiKey === "demo") {
+                    // Simuler un utilisateur pour passer l'écran d'accueil en Canvas
+                    setUser({ uid: 'alex-demo-user' });
+                } else {
+                    await auth.signInAnonymously();
+                }
+            };
+
             if (!isReady) return null;
 
             if (!user) return (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white text-center">
-                    <div className="mb-6"><DicoLogo size={320} animated={true} /></div>
+                <div className="flex-1 flex flex-col items-center justify-center p-6 bg-white text-center">
+                    <div className="mb-6 flex justify-center w-full">
+                        {/* Taille adaptative : maximum 280px, mais 70% de la largeur écran sur mobile */}
+                        <DicoLogo size={Math.min(280, window.innerWidth * 0.7)} animated={true} />
+                    </div>
                     <p className="text-slate-300 text-base font-light tracking-wide mt-10">L'encyclopédie personnelle épurée.</p>
-                    <button onClick={() => auth.signInAnonymously()} className="mt-24 w-full max-w-[240px] bg-sky-500 text-white py-5 rounded-[2rem] shadow-xl active:scale-95 transition-all text-[11px] font-light tracking-[0.4em] uppercase">Explorer</button>
+                    <button 
+                        onClick={handleExplorer}
+                        className="mt-20 w-full max-w-[240px] bg-sky-500 text-white py-5 rounded-[2rem] shadow-xl active:scale-95 transition-all text-[11px] font-light tracking-[0.4em] uppercase"
+                    >
+                        Explorer
+                    </button>
                 </div>
             );
 
             return (
                 <div className="flex-1 flex flex-col bg-[#fdfdfd] overflow-hidden">
                     <header className="p-6 pt-10 flex items-center justify-between z-30">
-                        <DicoLogo size={84} animated={false} />
-                        <button onClick={() => auth.signOut()} className="text-slate-300 p-2 hover:text-rose-400 transition-colors"><SimpleIcon name="logout" className="w-6 h-6" /></button>
+                        <DicoLogo size={Math.min(84, window.innerWidth * 0.2)} animated={false} />
+                        <button onClick={() => auth.signOut() || setUser(null)} className="text-slate-300 p-2 hover:text-rose-400 transition-colors"><SimpleIcon name="logout" className="w-6 h-6" /></button>
                     </header>
 
                     <main className="p-6 flex-1 space-y-6 overflow-y-auto no-scrollbar pb-60">
                         <div className="bg-white rounded-[2.2rem] flex items-center px-6 py-4 border border-slate-100 shadow-sm">
                             <SimpleIcon name="search" className="text-slate-300 w-4 h-4 mr-4" />
-                            <input type="text" placeholder="Rechercher dans vos listes..." className="w-full bg-transparent outline-none text-base font-light italic" value={search} onChange={e => setSearch(e.target.value)} />
+                            <input type="text" placeholder="Rechercher..." className="w-full bg-transparent outline-none text-base font-light italic" value={search} onChange={e => setSearch(e.target.value)} />
                         </div>
 
-                        {/* NAVIGATEUR DE LISTES (ONGLETS) */}
                         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
                             {['all', 'mot', 'proverbe', 'personnage'].map(tab => (
                                 <button 
                                     key={tab} 
                                     onClick={() => setActiveTab(tab)}
-                                    className={`px-6 py-2 rounded-full text-[10px] uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-sky-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-50'}`}
+                                    className={`px-6 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === tab ? 'bg-sky-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-50'}`}
                                 >
                                     {tab === 'all' ? 'Tous' : tab + 's'}
                                 </button>
@@ -355,31 +380,24 @@
                             {filteredData.map(w => (
                                 <div key={w.id} className="p-8 card-premium animate-in fade-in slide-in-from-bottom-2">
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[10px] uppercase tracking-[0.2em] text-sky-400 font-light bg-sky-50 px-3 py-1 rounded-full">{w.category}</span>
-                                            <button onClick={() => handleSpeak(`${w.term}. ${w.definition}`)} className="text-sky-200 hover:text-sky-500 transition-colors p-1"><SimpleIcon name="volume" className="w-5 h-5" /></button>
-                                        </div>
+                                        <span className="text-[10px] uppercase tracking-[0.2em] text-sky-400 font-light bg-sky-50 px-3 py-1 rounded-full">{w.category}</span>
                                         <button onClick={() => db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete()} className="text-slate-100 hover:text-rose-400 p-1"><SimpleIcon name="trash" className="w-4 h-4" /></button>
                                     </div>
-                                    <h3 className="text-3xl font-light tracking-tight capitalize mb-2">{w.term}</h3>
+                                    <h3 className="text-2xl font-light tracking-tight capitalize mb-2">{w.term}</h3>
                                     <p className="text-base opacity-50 leading-relaxed font-light mb-6">{w.definition}</p>
-                                    
                                     {w.translation && (
                                         <div className="pt-6 border-t border-slate-50 space-y-3">
                                             <div className="flex items-center gap-2 text-slate-300">
                                                 <SimpleIcon name="globe" className="w-3.5 h-3.5" />
                                                 <span className="text-[9px] uppercase tracking-[0.2em] font-light">Traduction : {w.translation.lang}</span>
                                             </div>
-                                            <div className="flex items-center gap-4 cursor-pointer group" onClick={() => handleSpeak(w.translation.text, w.translation.code || 'en-US')}>
-                                                <span className="text-lg font-light text-slate-400 italic group-hover:text-sky-500 transition-colors leading-tight">{w.translation.text}</span>
-                                                <SimpleIcon name="volume" className="w-4 h-4 text-slate-200 group-hover:text-sky-300" />
-                                            </div>
+                                            <div className="text-lg font-light text-slate-400 italic leading-tight">{w.translation.text}</div>
                                         </div>
                                     )}
                                 </div>
                             ))}
                             {filteredData.length === 0 && (
-                                <p className="text-center py-20 text-slate-200 italic font-light">Aucun résultat dans cette liste...</p>
+                                <p className="text-center py-20 text-slate-200 italic font-light">Aucun résultat trouvé...</p>
                             )}
                         </div>
                     </main>
