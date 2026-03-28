@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>DiCO Ai</title>
     
-    <!-- Meta tags pour PWA -->
+    <!-- Méta-tags pour PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="DiCO Ai">
     <meta name="theme-color" content="#0ea5e9">
     
-    <link rel="manifest" href='data:application/json,{"name":"DiCO Ai","short_name":"DiCOAi","start_url":".","display":"standalone","background_color":"#f8fafc","theme_color":"#0ea5e9","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3429/3429149.png","sizes":"512x512","type":"image/png"}]}'>
+    <!-- Icône pour l'écran d'accueil iOS -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/512/book.png">
+    
+    <!-- Configuration Manifeste -->
+    <link rel="manifest" href='data:application/json,{"name":"DiCO Ai","short_name":"DiCO Ai","start_url":".","display":"standalone","background_color":"#f8fafc","theme_color":"#0ea5e9","icons":[{"src":"https://img.icons8.com/fluency/512/book.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}'>
 
     <!-- Librairies Core -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -46,7 +50,7 @@
         .animate-page-turn { transform-origin: left center; animation: pageTurnOnce 1s 1.2s cubic-bezier(0.645, 0.045, 0.355, 1) forwards; backface-visibility: hidden; }
         .book-perspective { perspective: 1000px; position: relative; }
 
-        /* UI Styles */
+        /* Styles UI */
         .word-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(226, 232, 240, 0.5); }
         .btn-press:active { transform: scale(0.96); opacity: 0.8; }
         .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; pointer-events: none; }
@@ -77,10 +81,25 @@
         };
         const apiKey = ""; 
 
-        // Initialisation
+        // Initialisation Firebase
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+        // --- UTILITAIRE ICONES ---
+        // Ce composant remplace l'usage de i data-lucide pour éviter l'erreur removeChild
+        const Icon = ({ name, className = "w-5 h-5", ...props }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (iconRef.current && window.lucide) {
+                    const icon = window.lucide.icons[name];
+                    if (icon) {
+                        iconRef.current.innerHTML = icon.toSvg({ class: className, ...props });
+                    }
+                }
+            }, [name, className]);
+            return <span ref={iconRef} className="inline-flex items-center justify-center" />;
+        };
 
         // --- UTILITAIRES AUDIO ---
         const pcmToWav = (pcmBase64, sampleRate = 24000) => {
@@ -132,7 +151,7 @@
             const bgColor = msg.type === 'error' ? 'bg-rose-500' : msg.type === 'info' ? 'bg-sky-600' : 'bg-emerald-500';
             return (
                 <div className={`toast flex items-center gap-3 p-4 mb-2 rounded-2xl text-white shadow-xl ${bgColor}`}>
-                    <i data-lucide={msg.type === 'error' ? 'alert-circle' : 'check-circle'} className="w-5 h-5"></i>
+                    <Icon name={msg.type === 'error' ? 'alert-circle' : 'check-circle'} />
                     <span className="text-sm font-light">{msg.text}</span>
                 </div>
             );
@@ -154,7 +173,6 @@
             const addToast = (text, type = 'success') => {
                 const id = Date.now();
                 setToasts(prev => [...prev, { id, text, type }]);
-                if ('vibrate' in navigator) navigator.vibrate(type === 'error' ? 50 : 10);
             };
 
             const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
@@ -247,8 +265,8 @@
                 setIsGeneratingImg(word.id);
                 try {
                     const promptText = word.category === 'personnage' 
-                        ? `A realistic portrait of ${word.term}, historical accurate style, soft lighting`
-                        : `A poetic and symbolic illustration of the proverb "${word.term}", artistic style, digital painting`;
+                        ? `Un portrait réaliste de ${word.term}, style historique, éclairage doux`
+                        : `Une illustration poétique du proverbe "${word.term}", style artistique`;
                     
                     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
                         method: 'POST',
@@ -267,7 +285,7 @@
 
             const startQuiz = async () => {
                 if (words.length < 3) {
-                    addToast("Ajoute au moins 3 mots pour un quiz !", "error");
+                    addToast("Ajoute au moins 3 éléments pour un quiz !", "error");
                     return;
                 }
                 setIsLoading(true);
@@ -281,7 +299,6 @@
                 finally { setIsLoading(false); }
             };
 
-            // Fonction pour tester sans compte
             const handleGuestAccess = async () => {
                 setIsLoading(true);
                 try {
@@ -309,9 +326,8 @@
                         </div>
                         
                         <div className="space-y-4 pt-4">
-                            {/* BOUTON TEST SANS COMPTE */}
                             <button onClick={handleGuestAccess} className="w-full bg-sky-500 text-white p-5 rounded-3xl shadow-xl shadow-sky-100 flex items-center justify-center gap-3 btn-press font-light">
-                                {isLoading ? <div className="loader-spin"></div> : <><i data-lucide="play" className="w-5"></i> Accès invité (Test rapide)</>}
+                                {isLoading ? <div className="loader-spin"></div> : <><Icon name="play" /> Accès invité (Test rapide)</>}
                             </button>
                             
                             <div className="flex items-center gap-4 py-2">
@@ -320,7 +336,7 @@
                                 <div className="flex-1 h-[1px] bg-slate-200"></div>
                             </div>
 
-                            <button onClick={() => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())} className="w-full bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-center gap-3 shadow-sm btn-press text-slate-600">
+                            <button onClick={() => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())} className="w-full bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-center gap-3 shadow-sm btn-press text-slate-600 font-light">
                                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5" />
                                 Continuer avec Google
                             </button>
@@ -343,9 +359,9 @@
                         <div className="flex gap-2">
                             {user.isAnonymous && <span className="bg-white/20 text-white text-[8px] uppercase px-2 py-1 rounded-md self-center">Invité</span>}
                             <button onClick={startQuiz} className="bg-white/20 p-2 rounded-xl text-white hover:bg-white/30 transition-all btn-press">
-                                <i data-lucide="brain" className="w-5"></i>
+                                <Icon name="brain" />
                             </button>
-                            <button onClick={() => auth.signOut()} className="text-white/70 p-2"><i data-lucide="log-out" className="w-5"></i></button>
+                            <button onClick={() => auth.signOut()} className="text-white/70 p-2"><Icon name="log-out" /></button>
                         </div>
                     </header>
 
@@ -353,7 +369,7 @@
                         <div className="m-4 p-6 bg-amber-50 border border-amber-200 rounded-[2rem] animate-in zoom-in-95 duration-300">
                             <div className="flex justify-between items-start mb-4">
                                 <h4 className="text-amber-800 font-medium">Quiz ✨</h4>
-                                <button onClick={() => setQuiz(null)}><i data-lucide="x" className="w-4 text-amber-400"></i></button>
+                                <button onClick={() => setQuiz(null)}><Icon name="x" className="w-4 text-amber-400" /></button>
                             </div>
                             <p className="text-amber-900 mb-4">{quiz.question}</p>
                             <div className="space-y-2">
@@ -363,7 +379,7 @@
                                             addToast("Correct ! ✨", "success");
                                             setQuiz(null);
                                         } else addToast("Essaie encore !", "error");
-                                    }} className="w-full text-left p-3 bg-white border border-amber-100 rounded-xl text-sm hover:bg-amber-100 transition-all">
+                                    }} className="w-full text-left p-3 bg-white border border-amber-100 rounded-xl text-sm hover:bg-amber-100 transition-all font-light">
                                         {c}
                                     </button>
                                 ))}
@@ -373,7 +389,7 @@
 
                     <main className="p-4 flex-1 space-y-4 pb-44">
                         <div className="relative">
-                            <i data-lucide="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4"></i>
+                            <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4" />
                             <input type="text" placeholder="Mots, proverbes, personnages..." className="w-full pl-10 p-4 bg-white rounded-2xl shadow-sm border-none outline-none font-light italic" value={search} onChange={e => setSearch(e.target.value)} />
                         </div>
 
@@ -390,9 +406,9 @@
                                         </span>
                                         <div className="flex gap-2">
                                             <button onClick={(e) => { e.stopPropagation(); speakGemini(`${w.term}. ${w.definition}`); }} className={`${isSpeaking ? 'text-amber-500 animate-pulse' : 'text-sky-300'} hover:text-sky-500 transition-colors`}>
-                                                <i data-lucide="volume-2" className="w-5"></i>
+                                                <Icon name="volume-2" />
                                             </button>
-                                            <button onClick={(e) => { e.stopPropagation(); db.collection("users").doc(user.uid).collection("dictionary").doc(w.id).delete(); }} className="text-slate-100 hover:text-red-400"><i data-lucide="trash-2" className="w-4"></i></button>
+                                            <button onClick={(e) => { e.stopPropagation(); db.collection("users").doc(user.uid).collection("dictionary").doc(w.id).delete(); }} className="text-slate-100 hover:text-red-400"><Icon name="trash-2" className="w-4" /></button>
                                         </div>
                                     </div>
                                     <h3 className="text-2xl font-light text-slate-800 capitalize mb-1">{w.term}</h3>
@@ -406,9 +422,9 @@
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); generateImage(w); }} 
                                                     disabled={isGeneratingImg === w.id}
-                                                    className="w-full p-4 bg-sky-50 border border-sky-100 rounded-3xl text-sky-600 text-xs flex items-center justify-center gap-2 hover:bg-sky-100 transition-all"
+                                                    className="w-full p-4 bg-sky-50 border border-sky-100 rounded-3xl text-sky-600 text-xs flex items-center justify-center gap-2 hover:bg-sky-100 transition-all font-light"
                                                 >
-                                                    {isGeneratingImg === w.id ? <div className="loader-spin"></div> : <><i data-lucide="sparkles" className="w-4"></i> Illustrer avec l'IA ✨</>}
+                                                    {isGeneratingImg === w.id ? <div className="loader-spin"></div> : <><Icon name="sparkles" className="w-4" /> Illustrer avec l'IA ✨</>}
                                                 </button>
                                             )}
 
@@ -422,7 +438,7 @@
                                                 <p className="text-[10px] text-slate-300 uppercase tracking-tighter">
                                                     {w.category === 'personnage' ? 'Époque : ' : 'Origine : '} {w.details}
                                                 </p>
-                                                <button onClick={(e) => { e.stopPropagation(); speakGemini(`${w.term}. ${w.definition}. ${w.example}`); }} className="text-[10px] text-sky-400 flex items-center gap-1">
+                                                <button onClick={(e) => { e.stopPropagation(); speakGemini(`${w.term}. ${w.definition}. ${w.example}`); }} className="text-[10px] text-sky-400 flex items-center gap-1 font-light">
                                                     Lire la bio complète ✨
                                                 </button>
                                             </div>
@@ -437,7 +453,7 @@
                         <div className="max-w-md mx-auto bg-white rounded-[3rem] shadow-2xl p-2 flex items-center gap-2 border">
                             <input type="text" placeholder="Un mot, un proverbe, un nom..." className="flex-1 px-6 py-4 outline-none font-light italic" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleAddEntry()} />
                             <button onClick={handleAddEntry} className="bg-sky-500 text-white p-5 rounded-[2rem] shadow-xl min-w-[70px] flex items-center justify-center btn-press">
-                                {isLoading ? <div className="loader-spin"></div> : <i data-lucide="plus"></i>}
+                                {isLoading ? <div className="loader-spin"></div> : <Icon name="plus" className="w-6 h-6" />}
                             </button>
                         </div>
                     </div>
@@ -447,7 +463,6 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-        setInterval(() => { if (window.lucide) lucide.createIcons(); }, 1000);
     </script>
 </body>
 </html>
