@@ -53,7 +53,7 @@
 
         @keyframes listeningPulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.08); }
+            50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
 
@@ -94,13 +94,13 @@
         };
         
         const apiKey = ""; 
-        const appIdStr = "dico-ai-heritage-alex-final-v15";
+        const appIdStr = "dico-ai-heritage-alex-final-v17";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Helper PCM to WAV pour la voix naturelle Gemini
+        // Helper PCM to WAV
         const pcmToWav = (pcmData, sampleRate) => {
             const buffer = new ArrayBuffer(44 + pcmData.length);
             const view = new DataView(buffer);
@@ -194,6 +194,36 @@
                 } catch (e) { throw e; }
             };
 
+            const startListening = () => {
+                const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!Rec) return;
+                
+                if (recognitionRef.current) {
+                    try { recognitionRef.current.stop(); } catch(e) {}
+                }
+                
+                const rec = new Rec(); 
+                rec.lang = 'fr-FR';
+                rec.continuous = false;
+                rec.interimResults = false;
+
+                rec.onstart = () => {
+                    setIsListening(true); // Signal Rouge Cerise
+                };
+                
+                rec.onresult = (e) => { 
+                    setIsListening(false); 
+                    const transcript = e.results[0][0].transcript;
+                    processEncoding(transcript); 
+                };
+                
+                rec.onerror = () => setIsListening(false);
+                rec.onend = () => setIsListening(false);
+                
+                recognitionRef.current = rec;
+                try { rec.start(); } catch(e) { setIsListening(false); }
+            };
+
             const playGeminiTTS = async (text, startMicAfter = false) => {
                 setIsListening(false); 
                 try {
@@ -210,7 +240,11 @@
                     const audioData = result.candidates[0].content.parts[0].inlineData;
                     const audio = new Audio(URL.createObjectURL(pcmToWav(atob(audioData.data).split("").map(c => c.charCodeAt(0)), 24000)));
                     
-                    audio.onended = () => { if (startMicAfter && isVoice) startListening(); };
+                    audio.onended = () => { 
+                        if (startMicAfter && isVoice) {
+                            setTimeout(startListening, 50); // Enchaînement immédiat après la voix
+                        } 
+                    };
                     audio.play();
                 } catch (e) {
                     const u = new SpeechSynthesisUtterance(text);
@@ -220,9 +254,11 @@
                 }
             };
 
-            const processEncoding = async (text) => {
+            const processEncoding = async (textOverride) => {
+                const text = textOverride || inputValue;
                 if (!text || !text.trim() || loading) return;
                 setLoading(true);
+                
                 const isFollowUp = lastWordRef.current && (text.includes("nuance") || text.includes("synonyme") || text.includes("mnémo") || text.includes("situation") || text.includes("pop"));
 
                 if (isFollowUp) {
@@ -245,24 +281,6 @@
                     setExpandedId(docRef.id);
                     if (isVoice) playGeminiTTS(`${result.term}. ${result.definition}`, true);
                 } catch(e) { console.error(e); } finally { setLoading(false); }
-            };
-
-            const startListening = () => {
-                const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!Rec) return;
-                if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {}
-                
-                const rec = new Rec(); rec.lang = 'fr-FR';
-                rec.onstart = () => setIsListening(true);
-                rec.onresult = (e) => { 
-                    setIsListening(false); 
-                    processEncoding(e.results[0][0].transcript); 
-                };
-                rec.onend = () => { setIsListening(false); };
-                
-                recognitionRef.current = rec;
-                setIsListening(true);
-                try { rec.start(); } catch(e) { setIsListening(false); }
             };
 
             const handleImprove = async (id, term, type) => {
@@ -397,15 +415,27 @@
 
                     <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
                         <div className="max-w-md mx-auto">
-                            {/* FORMULAIRE POUR VALIDATION TOUCHE ENTREE MOBILE */}
-                            <form onSubmit={(e) => { e.preventDefault(); processEncoding(inputValue); }} className="bg-white rounded-[4rem] shadow-2xl p-3 flex items-center gap-3 border border-slate-100">
-                                <button type="button" onClick={() => setLangMenuOpen(true)} className="p-4 text-slate-200 hover:text-sky-500 transition-all"><IconGlobe /></button>
-                                <button type="button" onClick={() => { 
-                                    const next = !isVoice; 
-                                    setIsVoice(next); 
-                                    if (next) { playGeminiTTS("Je t'écoute Alex.", true); } 
-                                    else { setIsListening(false); if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {} }
-                                }} className={`p-4 rounded-full transition-all ${isVoice ? (isListening ? 'is-listening-logo shadow-lg text-white' : 'bg-slate-900 text-white shadow-lg') : 'text-slate-200 hover:text-sky-500'}`}>
+                            {/* FORMULAIRE POUR VALIDATION MOBILE GARANTIE */}
+                            <form 
+                                onSubmit={(e) => { 
+                                    e.preventDefault(); 
+                                    processEncoding(); 
+                                }} 
+                                className="bg-white rounded-[4rem] shadow-2xl p-3 flex items-center gap-3 border border-slate-100"
+                            >
+                                <button type="button" onClick={() => setLangMenuOpen(true)} className="p-4 text-slate-200 hover:text-sky-500 transition-all focus:outline-none">
+                                    <IconGlobe />
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => { 
+                                        const next = !isVoice; 
+                                        setIsVoice(next); 
+                                        if (next) { playGeminiTTS("Je t'écoute Alex.", true); } 
+                                        else { setIsListening(false); if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {} }
+                                    }} 
+                                    className={`p-4 rounded-full transition-all focus:outline-none ${isVoice ? (isListening ? 'is-listening-logo shadow-lg text-white' : 'bg-slate-900 text-white shadow-lg') : 'text-slate-200 hover:text-sky-500'}`}
+                                >
                                     <IconMic />
                                 </button>
                                 <input 
@@ -416,7 +446,11 @@
                                     onChange={e => setInputValue(e.target.value)}
                                     enterKeyHint="done"
                                 />
-                                <button type="submit" disabled={loading} className="bg-sky-500 text-white p-5 rounded-full shadow-xl active:scale-90 transition-transform">
+                                <button 
+                                    type="submit" 
+                                    disabled={loading} 
+                                    className="bg-sky-500 text-white p-5 rounded-full shadow-xl active:scale-90 transition-transform flex items-center justify-center min-w-[56px] min-h-[56px]"
+                                >
                                     {loading ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <IconPlus />}
                                 </button>
                             </form>
