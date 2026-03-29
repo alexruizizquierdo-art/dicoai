@@ -45,6 +45,7 @@
         .book-viewport { position: relative; transform-style: preserve-3d; perspective: 2500px; display: flex; align-items: center; justify-content: center; }
         .alex-frame-box { background-color: #0ea5e9; border-radius: 24%; display: flex; align-items: center; justify-content: center; box-shadow: 0 30px 60px -12px rgba(14, 165, 233, 0.45); position: relative; transform-style: preserve-3d; transition: all 0.4s ease; }
         
+        /* FEEDBACK VOCAL - ROUGE CERISE ÉLITE */
         .is-listening-logo { 
             animation: listeningPulse 1.2s infinite !important; 
             background-color: #f43f5e !important; 
@@ -57,7 +58,7 @@
 
         @keyframes listeningPulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            50% { transform: scale(1.03); }
             100% { transform: scale(1); }
         }
 
@@ -98,13 +99,13 @@
         };
         
         const apiKey = ""; 
-        const appIdStr = "dico-ai-heritage-alex-v21";
+        const appIdStr = "dico-ai-heritage-alex-final-v22";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Conversion PCM to WAV
+        // Helper PCM to WAV
         const pcmToWav = (pcmData, sampleRate) => {
             const buffer = new ArrayBuffer(44 + pcmData.length);
             const view = new DataView(buffer);
@@ -196,11 +197,14 @@
                 } catch (e) { throw e; }
             };
 
+            // --- RECONNAISSANCE VOCALE MOBILE RENFORCÉE ---
             const startListening = () => {
                 const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!Rec) return;
                 
-                if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e) {} }
+                if (recognitionRef.current) { 
+                    try { recognitionRef.current.stop(); } catch(e) {} 
+                }
                 
                 const rec = new Rec(); 
                 rec.lang = 'fr-FR';
@@ -210,17 +214,20 @@
                 rec.onstart = () => { setIsListening(true); };
                 rec.onresult = (e) => { 
                     setIsListening(false); 
-                    processEncoding(e.results[0][0].transcript); 
+                    const transcript = e.results[0][0].transcript;
+                    processEncoding(transcript); 
                 };
-                rec.onerror = () => setIsListening(false);
-                rec.onend = () => setIsListening(false);
+                rec.onerror = (err) => {
+                    setIsListening(false);
+                };
+                rec.onend = () => { setIsListening(false); };
                 
                 recognitionRef.current = rec;
                 try { rec.start(); } catch(e) { setIsListening(false); }
             };
 
             const playGeminiTTS = async (text, startMicAfter = false) => {
-                // Pour mobile : on initialise le micro immédiatement au clic pour "déverrouiller" le matériel
+                // Sur smartphone : on ouvre le micro dès le clic pour garder le lien avec le geste utilisateur
                 if (startMicAfter && isVoice) { startListening(); }
 
                 try {
@@ -237,8 +244,8 @@
                     const audioData = result.candidates[0].content.parts[0].inlineData;
                     const audio = new Audio(URL.createObjectURL(pcmToWav(atob(audioData.data).split("").map(c => c.charCodeAt(0)), 24000)));
                     
-                    audio.onplay = () => { if(startMicAfter) setIsListening(false); };
-                    audio.onended = () => { if(startMicAfter) setIsListening(true); };
+                    audio.onplay = () => { if(startMicAfter) setIsListening(false); }; // Signal bleu pendant que l'IA parle
+                    audio.onended = () => { if(startMicAfter) setIsListening(true); }; // Signal rouge quand l'IA se tait
                     audio.play();
                 } catch (e) {
                     const u = new SpeechSynthesisUtterance(text);
@@ -248,17 +255,21 @@
                 }
             };
 
+            // --- FONCTION DE TRAITEMENT CORRIGÉE POUR MOBILE ---
             const processEncoding = async (textOverride) => {
-                const text = (textOverride || inputValue || "").trim();
-                if (!text || loading) return;
+                // On récupère le texte manuel (input) ou automatique (micro)
+                const targetText = (textOverride || inputValue || "").trim();
+                
+                if (!targetText || loading) return;
                 
                 setLoading(true);
-                const isFollowUp = lastWordRef.current && (text.toLowerCase().includes("nuance") || text.toLowerCase().includes("synonyme") || text.toLowerCase().includes("mnémo") || text.toLowerCase().includes("situation") || text.toLowerCase().includes("pop"));
+                
+                const isFollowUp = lastWordRef.current && (targetText.toLowerCase().includes("nuance") || targetText.toLowerCase().includes("synonyme") || targetText.toLowerCase().includes("mnémo") || targetText.toLowerCase().includes("situation") || targetText.toLowerCase().includes("pop"));
 
                 if (isFollowUp) {
-                    const type = (text.includes("nuance") || text.includes("synonyme")) ? 'nuances' : 
-                                 text.includes("mnémo") ? 'mnemonic' :
-                                 text.includes("situation") ? 'scenarios' : 'pop';
+                    const type = (targetText.includes("nuance") || targetText.includes("synonyme")) ? 'nuances' : 
+                                 targetText.includes("mnémo") ? 'mnemonic' :
+                                 targetText.includes("situation") ? 'scenarios' : 'pop';
                     const res = await handleImprove(lastWordRef.current.id, lastWordRef.current.term, type);
                     playGeminiTTS(res, true);
                     return;
@@ -266,15 +277,20 @@
 
                 try {
                     const targets = selectedLangs.map(id => LANGUAGES_DB.find(l => l.id === id).name).join(', ');
-                    const prompt = `Analyse "${text}". Réponds en JSON: {"category":"mot"|"proverbe"|"nom","term":"corrigé","definition":"explication","translations":[{"lang":"langue","text":"traduction"}]}. Traduis en : ${targets}.`;
+                    const prompt = `Analyse "${targetText}". Réponds en JSON: {"category":"mot"|"proverbe"|"nom","term":"corrigé","definition":"explication","translations":[{"lang":"langue","text":"traduction"}]}. Traduis en : ${targets}.`;
                     const resText = await callGemini(prompt);
                     const result = JSON.parse(resText.match(/\{[\s\S]*\}/)[0]);
                     const docRef = await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
+                    
                     lastWordRef.current = { id: docRef.id, term: result.term };
                     setInputValue(''); 
                     setExpandedId(docRef.id);
                     if (isVoice) playGeminiTTS(`${result.term}. ${result.definition}`, true);
-                } catch(e) { console.error(e); } finally { setLoading(false); }
+                } catch(e) { 
+                    console.error("Erreur d'analyse IA");
+                } finally { 
+                    setLoading(false); 
+                }
             };
 
             const handleImprove = async (id, term, type) => {
@@ -407,11 +423,45 @@
 
                     <div className="fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
                         <div className="max-w-md mx-auto">
-                            <form onSubmit={(e) => { e.preventDefault(); processEncoding(); }} className="bg-white rounded-[2.5rem] shadow-xl p-2 flex items-center gap-1 border border-slate-100">
-                                <button type="button" onClick={() => setLangMenuOpen(true)} className="p-3 text-slate-200 transition-all"><IconGlobe /></button>
-                                <button type="button" onClick={() => { const next = !isVoice; setIsVoice(next); if (next) { playGeminiTTS("Je t'écoute Alex.", true); } else { setIsListening(false); if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {} } }} className={`p-3 rounded-full transition-all ${isVoice ? (isListening ? 'is-listening-logo shadow-md text-white' : 'bg-slate-900 text-white shadow-md') : 'text-slate-200'}`}><IconMic /></button>
-                                <input type="text" placeholder="Indexer..." className="flex-1 bg-transparent px-2 py-3 outline-none font-light italic text-slate-700 text-sm" value={inputValue} onChange={e => setInputValue(e.target.value)} enterKeyHint="done" autoComplete="off" />
-                                <button type="submit" disabled={loading} className="bg-sky-500 text-white p-3 rounded-full shadow-lg active:scale-90 flex items-center justify-center min-w-[40px] min-h-[40px]">{loading ? <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <IconPlus />}</button>
+                            {/* FORMULAIRE POUR VALIDATION MOBILE GARANTIE ✨ */}
+                            <form 
+                                onSubmit={(e) => { 
+                                    e.preventDefault(); 
+                                    processEncoding(); 
+                                }} 
+                                className="bg-white rounded-[2.5rem] shadow-xl p-2 flex items-center gap-1 border border-slate-100"
+                            >
+                                <button type="button" onClick={() => setLangMenuOpen(true)} className="p-3 text-slate-200 transition-all focus:outline-none">
+                                    <IconGlobe />
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => { 
+                                        const next = !isVoice; 
+                                        setIsVoice(next); 
+                                        if (next) { playGeminiTTS("Je t'écoute Alex.", true); } 
+                                        else { setIsListening(false); if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {} }
+                                    }} 
+                                    className={`p-3 rounded-full transition-all focus:outline-none ${isVoice ? (isListening ? 'is-listening-logo shadow-md text-white' : 'bg-slate-900 text-white shadow-md') : 'text-slate-200'}`}
+                                >
+                                    <IconMic />
+                                </button>
+                                <input 
+                                    type="text" 
+                                    placeholder="Indexer..." 
+                                    className="flex-1 bg-transparent px-2 py-3 outline-none font-light italic text-slate-700 text-sm" 
+                                    value={inputValue} 
+                                    onChange={e => setInputValue(e.target.value)} 
+                                    enterKeyHint="done" 
+                                    autoComplete="off" 
+                                />
+                                <button 
+                                    type="submit" 
+                                    disabled={loading} 
+                                    className="bg-sky-500 text-white p-3 rounded-full shadow-lg active:scale-90 flex items-center justify-center min-w-[40px] min-h-[40px]"
+                                >
+                                    {loading ? <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <IconPlus />}
+                                </button>
                             </form>
                         </div>
                     </div>
