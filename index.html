@@ -16,37 +16,154 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDK (Compat mode pour GitHub Pages) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     
-    <!-- Icônes FontAwesome 6 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap');
-        * { font-family: 'Inter', sans-serif !important; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #ffffff; overflow-x: hidden; }
+        
+        * { 
+            font-family: 'Inter', sans-serif !important; 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body, html { 
+            margin: 0; padding: 0; 
+            width: 100%; height: 100%; 
+            background-color: #ffffff; 
+            overflow-x: hidden; 
+        }
+
         #root { width: 100%; height: 100%; display: flex; flex-direction: column; }
 
-        /* --- MOTEUR 3D ÉLITE CADENASSÉ --- */
-        @keyframes butterflyOpenAction { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(-180deg); } }
-        @keyframes butterflyPageAction { 0% { transform: rotateY(0deg); opacity: 0; } 3% { opacity: 1; } 100% { transform: rotateY(-170deg); opacity: 1; } }
-        @keyframes signatureRevealAction { 0%, 65% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
+        /* --- MOTEUR 3D ÉLITE (CADENASSÉ) --- */
+        @keyframes butterflyOpenAction {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(-180deg); }
+        }
+        
+        @keyframes butterflyPageAction {
+            0% { transform: rotateY(0deg); opacity: 0; }
+            3% { opacity: 1; }
+            100% { transform: rotateY(-170deg); opacity: 1; }
+        }
 
-        .book-viewport { position: relative; transform-style: preserve-3d; perspective: 2500px; display: flex; align-items: center; justify-content: center; }
-        .alex-frame-box { background-color: #0ea5e9; border-radius: 24%; display: flex; align-items: center; justify-content: center; box-shadow: 0 45px 90px -15px rgba(14, 165, 233, 0.45); position: relative; transform-style: preserve-3d; transition: all 0.4s ease; }
-        .is-listening-logo { animation: listeningPulse 1.2s infinite !important; background-color: #f43f5e !important; box-shadow: 0 25px 50px -12px rgba(244, 63, 94, 0.5) !important; }
-        @keyframes listeningPulse { 0% { transform: scale(1); } 70% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes signatureRevealAction {
+            0%, 65% { opacity: 0; transform: translateY(4px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
 
-        .book-model { position: relative; transform-style: preserve-3d; width: 44%; height: 64%; transform: translateX(22%); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .book-right-page { position: absolute; inset: 0; background: #fffdfa !important; background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 12%, #fffdfa 100%); border-radius: 0 6px 6px 0; border: 1px solid #e2e8f0; z-index: 5; display: flex; align-items: center; justify-content: center; box-shadow: 15px 15px 40px rgba(0,0,0,0.1); transform-style: preserve-3d; }
-        .book-cover-leaf { position: absolute; inset: 0; transform-origin: left center; z-index: 50; transform-style: preserve-3d; backface-visibility: visible; }
-        .cover-front { position: absolute; inset: 0; background: #fffdfa !important; border: 2px solid #0ea5e9; border-radius: 0 6px 6px 0; backface-visibility: hidden; z-index: 2; }
-        .cover-back { position: absolute; inset: 0; background: #fffdfa !important; background-image: linear-gradient(to left, #f2ece4 0%, #fffdfa 15%, #fffdfa 100%); transform: rotateY(180deg); backface-visibility: hidden; border: 1px solid #e2e8f0; border-radius: 6px 0 0 6px; z-index: 1; }
-        .book-turning-leaf { position: absolute; inset: 1px; background: #fffdfa !important; background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 18%, #fffdfa 100%); border-radius: 0 6px 6px 0; border: 1px solid #f1f5f9; transform-origin: left center; z-index: 40; opacity: 0; backface-visibility: hidden; }
-        .book-spine-line { position: absolute; left: -1px; top: 0; bottom: 0; width: 4px; background: rgba(0,0,0,0.15); z-index: 100; }
+        .book-viewport {
+            position: relative;
+            transform-style: preserve-3d;
+            perspective: 2500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .alex-frame-box {
+            background-color: #0ea5e9;
+            border-radius: 24%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 45px 90px -15px rgba(14, 165, 233, 0.45);
+            position: relative;
+            transform-style: preserve-3d;
+            transition: all 0.4s ease;
+        }
+
+        .is-listening-logo { 
+            animation: listeningPulse 1.2s infinite !important; 
+            background-color: #f43f5e !important; 
+            box-shadow: 0 25px 50px -12px rgba(244, 63, 94, 0.5) !important;
+        }
+
+        @keyframes listeningPulse {
+            0% { transform: scale(1); }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .book-model {
+            position: relative;
+            transform-style: preserve-3d;
+            width: 44%;
+            height: 64%;
+            transform: translateX(22%);
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .book-right-page {
+            position: absolute;
+            inset: 0;
+            background: #fffdfa !important;
+            background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 12%, #fffdfa 100%);
+            border-radius: 0 6px 6px 0;
+            border: 1px solid #e2e8f0;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 15px 15px 40px rgba(0,0,0,0.1);
+            transform-style: preserve-3d;
+        }
+
+        .book-cover-leaf {
+            position: absolute;
+            inset: 0;
+            transform-origin: left center;
+            z-index: 50;
+            transform-style: preserve-3d;
+            backface-visibility: visible;
+        }
+
+        .cover-front {
+            position: absolute;
+            inset: 0;
+            background: #fffdfa !important;
+            border: 2px solid #0ea5e9;
+            border-radius: 0 6px 6px 0;
+            backface-visibility: hidden;
+            z-index: 2;
+        }
+
+        .cover-back {
+            position: absolute;
+            inset: 0;
+            background: #fffdfa !important;
+            background-image: linear-gradient(to left, #f2ece4 0%, #fffdfa 15%, #fffdfa 100%);
+            transform: rotateY(180deg);
+            backface-visibility: hidden;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px 0 0 6px;
+            z-index: 1;
+        }
+
+        .book-turning-leaf {
+            position: absolute;
+            inset: 1px;
+            background: #fffdfa !important;
+            background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 18%, #fffdfa 100%);
+            border-radius: 0 6px 6px 0;
+            border: 1px solid #f1f5f9;
+            transform-origin: left center;
+            z-index: 40;
+            opacity: 0;
+            backface-visibility: hidden;
+        }
+
+        .book-spine-line {
+            position: absolute;
+            left: -1px; top: 0; bottom: 0;
+            width: 4px;
+            background: rgba(0,0,0,0.15);
+            z-index: 100;
+        }
 
         .anim-open { animation: butterflyOpenAction 2.2s 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
         .anim-page { animation: butterflyPageAction 2.6s 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
@@ -64,7 +181,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- CONFIGURATION FIREBASE ALEX (HARDCODÉE POUR GITHUB) ---
+        // --- CONFIGURATION FIREBASE ---
         const firebaseConfig = { 
             apiKey: "AIzaSyDS-n8NcoNTJ21FUb_MdOaPnX75EW2KIh8",
             authDomain: "dico-ai.firebaseapp.com",
@@ -74,35 +191,23 @@
             appId: "1:1083255726513:web:21d2af14a9efd449b0dd90"
         };
         
-        // Clé API Gemini (Alex, remplace par la tienne si tu en as une, sinon utilise le service proxy)
         const GEMINI_API_KEY = ""; 
-        const APP_ID_PATH = "dico-ai-pro-final";
+        const appIdStr = "dico-ai-pro-alex";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        const ALL_LANGUAGES = [
-            { id: 'en', name: 'Anglais' }, { id: 'es', name: 'Espagnol' }, { id: 'de', name: 'Allemand' },
-            { id: 'it', name: 'Italien' }, { id: 'pt', name: 'Portugais' }, { id: 'nl', name: 'Néerlandais' },
-            { id: 'ru', name: 'Russe' }, { id: 'ja', name: 'Japonais' }, { id: 'zh', name: 'Chinois' },
-            { id: 'ko', name: 'Coréen' }, { id: 'ar', name: 'Arabe' }, { id: 'hi', name: 'Hindi' },
-            { id: 'tr', name: 'Turc' }, { id: 'pl', name: 'Polonais' }, { id: 'sv', name: 'Suédois' }
-        ];
+        // --- COMPOSANTS ICONES SVG (POUR UNE VISIBILITÉ 100%) ---
+        const IconGlobe = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+        const IconMic = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
+        const IconCar = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>;
+        const IconPlus = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+        const IconPlay = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>;
+        const IconTrash = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+        const IconVolume = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"/></svg>;
 
-        const pcmToWav = (pcmData, sampleRate) => {
-            const buffer = new ArrayBuffer(44 + pcmData.length);
-            const view = new DataView(buffer);
-            const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
-            writeStr(0, 'RIFF'); view.setUint32(4, 36 + pcmData.length, true); writeStr(8, 'WAVE'); writeStr(12, 'fmt ');
-            view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeStr(36, 'data');
-            view.setUint32(40, pcmData.length, true);
-            for (let i = 0; i < pcmData.length; i++) view.setUint8(44 + i, pcmData[i]);
-            return new Blob([buffer], { type: 'audio/wav' });
-        };
-
+        // --- COMPOSANT LOGO ROYAL (CADENASSÉ) ---
         const DicoLogo = ({ size = 90, animated = true, listening = false }) => {
             return (
                 <div className="book-viewport" style={{ width: size, height: size }}>
@@ -132,8 +237,6 @@
             const [inputValue, setInputValue] = useState('');
             const [searchQuery, setSearchQuery] = useState('');
             const [activeCategoryTab, setActiveCategoryTab] = useState('all');
-            const [selectedLangs, setSelectedLangs] = useState(['en']);
-            const [langMenuOpen, setLangMenuOpen] = useState(false);
             const [loading, setLoading] = useState(false);
             const [isVoiceMode, setIsVoiceMode] = useState(false);
             const [isTrulyListening, setIsTrulyListening] = useState(false);
@@ -142,29 +245,20 @@
             const recognitionRef = useRef(null);
 
             useEffect(() => {
-                const initAuth = async () => { try { await auth.signInAnonymously(); } catch(e) { console.error("Auth fail", e); } };
-                initAuth();
+                // On détecte seulement, on ne force pas le login auto pour laisser la page de démarrage visible
                 const unsubscribe = auth.onAuthStateChanged(setUser);
                 return () => unsubscribe();
             }, []);
 
             useEffect(() => {
                 if (user) {
-                    const q = db.collection('artifacts').doc(APP_ID_PATH).collection('users').doc(user.uid).collection('dictionary');
+                    const q = db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary');
                     return q.onSnapshot(snap => setWords(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
                 }
             }, [user]);
 
-            const availableLangs = useMemo(() => {
-                const langs = new Set(words.map(w => w.sourceLang || 'Français'));
-                return ['all', ...Array.from(langs)];
-            }, [words]);
-
             const callGemini = async (prompt, system = "Expert IA.") => {
-                if (!GEMINI_API_KEY) { 
-                    console.warn("Pas de clé API Gemini. Utilisation d'un bouchon.");
-                    return JSON.stringify({action:"ask", answer:"Veuillez configurer votre clé API Gemini dans le code pour activer l'intelligence."});
-                }
+                if (!GEMINI_API_KEY) return JSON.stringify({action:"ask", answer:"Configure ta clé Gemini Alex !"});
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -175,15 +269,12 @@
             };
 
             const playTTS = async (text) => {
-                if (isSpeaking) return;
                 setIsSpeaking(true);
                 setIsTrulyListening(false);
-                try {
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = 'fr-FR';
-                    utterance.onend = () => { setIsSpeaking(false); if (isVoiceMode) startListening(); };
-                    window.speechSynthesis.speak(utterance);
-                } catch (e) { setIsSpeaking(false); }
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'fr-FR';
+                utterance.onend = () => { setIsSpeaking(false); if (isVoiceMode) startListening(); };
+                window.speechSynthesis.speak(utterance);
             };
 
             const startListening = () => {
@@ -200,35 +291,35 @@
 
             const handleVoiceEngine = async (text) => {
                 setLoading(true);
-                const targets = selectedLangs.join(', ');
-                const sys = `Nouveau mot: JSON {"action":"new", "data":{"category":"mot","term":"..","definition":"..","sourceLang":"Français","translations":[]}}. Sinon question: {"action":"ask", "answer":".."}.`;
+                const sys = `Alex: "${text}". Si nouveau savoir: JSON {"action":"new", "data":{"category":"mot","term":"..","definition":"..","sourceLang":"Français"}}. Sinon question: {"action":"ask", "answer":".."}.`;
                 try {
                     const resText = await callGemini(text, sys);
                     const res = JSON.parse(resText.match(/\{[\s\S]*\}/)[0]);
                     if (res.action === "new") {
-                        await db.collection('artifacts').doc(APP_ID_PATH).collection('users').doc(user.uid).collection('dictionary').add({ ...res.data, createdAt: Date.now() });
+                        await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...res.data, createdAt: Date.now() });
                         playTTS(`${res.data.term}. ${res.data.definition}.`);
                     } else { playTTS(res.answer); }
-                } catch (e) { playTTS("Je n'ai pas compris."); } finally { setLoading(false); }
+                } catch (e) { playTTS("Pardon Alex ?"); } finally { setLoading(false); }
             };
 
             const handleManualAdd = async () => {
                 if (!inputValue.trim() || loading) return;
                 setLoading(true);
                 try {
-                    const resText = await callGemini(inputValue, "Réponds en JSON: {\"category\":\"mot\",\"term\":\"corrigé\",\"definition\":\"explication\",\"sourceLang\":\"Français\"}");
+                    const resText = await callGemini(inputValue, "Réponds JSON: {\"category\":\"mot\",\"term\":\"corrigé\",\"definition\":\"explication\",\"sourceLang\":\"Français\"}");
                     const result = JSON.parse(resText.match(/\{[\s\S]*\}/)[0]);
-                    await db.collection('artifacts').doc(APP_ID_PATH).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
+                    await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
                     setInputValue('');
                 } catch(e) { console.error(e); } finally { setLoading(false); }
             };
 
             if (!user) return (
-                <div className="h-screen flex flex-col items-center justify-center bg-white p-6 text-center">
-                    <div className="mb-16"><DicoLogo size={320} animated={true} listening={false} /></div>
-                    <button onClick={() => auth.signInAnonymously()} className="w-full max-w-[300px] bg-sky-500 text-white py-5 rounded-[3rem] shadow-xl font-bold uppercase tracking-[0.5em] active:scale-95 transition-all text-[10px] flex items-center justify-center gap-3">
-                        <i className="fa-solid fa-play"></i> Démarrer
+                <div className="h-screen flex flex-col items-center justify-center bg-white p-8 text-center animate-in fade-in">
+                    <div className="mb-20"><DicoLogo size={340} animated={true} listening={false} /></div>
+                    <button onClick={() => auth.signInAnonymously()} className="w-full max-w-[280px] bg-sky-500 text-white py-6 rounded-[3rem] shadow-xl font-bold uppercase tracking-[0.4em] active:scale-95 transition-all text-[11px] flex items-center justify-center gap-3">
+                        <IconPlay /> Démarrer
                     </button>
+                    <p className="mt-8 text-slate-300 text-[10px] uppercase tracking-widest font-medium">Édition Héritage Elite</p>
                 </div>
             );
 
@@ -237,7 +328,9 @@
                     <header className="p-6 pt-10 flex flex-col items-center border-b border-slate-50 gap-2 relative z-30">
                         <DicoLogo size={140} animated={false} listening={isTrulyListening} />
                         <div className="absolute right-6 top-10">
-                            <button onClick={() => auth.signOut()} className="text-slate-200 hover:text-rose-400 transition-colors"><i className="fa-solid fa-right-from-bracket text-xl"></i></button>
+                            <button onClick={() => auth.signOut()} className="text-slate-200 hover:text-rose-400 transition-colors">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                            </button>
                         </div>
                     </header>
 
@@ -248,7 +341,9 @@
                             ))}
                         </div>
                         <div className="relative mt-2">
-                            <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-slate-200"></i>
+                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-200">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            </div>
                             <input type="text" placeholder="Rechercher..." className="w-full pl-12 pr-6 py-4 bg-slate-50 rounded-full border-none outline-none text-sm italic text-slate-600" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                         </div>
                     </div>
@@ -260,9 +355,9 @@
                                     <div className="flex justify-between items-start mb-6">
                                         <div className="flex items-center gap-4">
                                             <span className="text-[10px] uppercase tracking-[0.3em] text-sky-500 font-bold bg-sky-50 px-4 py-1.5 rounded-full">{w.category}</span>
-                                            <button onClick={() => playTTS(`${w.term}. ${w.definition}`)} className="text-sky-200 hover:text-sky-500"><i className="fa-solid fa-volume-high text-lg"></i></button>
+                                            <button onClick={() => playTTS(`${w.term}. ${w.definition}`)} className="text-sky-200 hover:text-sky-500"><IconVolume /></button>
                                         </div>
-                                        <button onClick={() => db.collection('artifacts').doc(APP_ID_PATH).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete()} className="text-slate-100 hover:text-rose-400"><i className="fa-solid fa-trash-can"></i></button>
+                                        <button onClick={() => db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete()} className="text-slate-100 hover:text-rose-400"><IconTrash /></button>
                                     </div>
                                     <h3 className="text-4xl font-light italic tracking-tight capitalize mb-4 text-slate-800">{w.term} <span className="text-[10px] text-slate-300 ml-2">({w.sourceLang})</span></h3>
                                     <p className="text-lg text-slate-500 leading-relaxed font-light mb-10 opacity-75">{w.definition}</p>
@@ -274,29 +369,21 @@
                     <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
                         <div className="max-w-md mx-auto">
                             <div className="bg-white rounded-[4rem] shadow-2xl p-3 flex items-center gap-3 border border-slate-100">
-                                <button onClick={() => setLangMenuOpen(true)} className="p-4 text-slate-400 hover:text-sky-500 transition-all"><i className="fa-solid fa-earth-europe text-xl"></i></button>
-                                <button onClick={() => { const next = !isVoiceMode; setIsVoiceMode(next); if (next) playTTS("Je t'écoute."); else setIsTrulyListening(false); }} className={`p-4 rounded-full transition-all ${isVoiceMode ? (isTrulyListening ? 'is-listening-logo shadow-lg text-white' : 'bg-slate-900 text-white shadow-lg') : 'text-slate-400 hover:text-sky-500'}`}>
-                                    <i className={`fa-solid ${isVoiceMode ? (isTrulyListening ? 'fa-volume-high' : 'fa-car') : 'fa-microphone'} text-xl`}></i>
+                                <button className="p-4 text-slate-200 hover:text-sky-500 transition-all"><IconGlobe /></button>
+                                <button onClick={() => { const next = !isVoiceMode; setIsVoiceMode(next); if (next) playTTS("Je t'écoute Alex."); else setIsTrulyListening(false); }} className={`p-4 rounded-full transition-all ${isVoiceMode ? (isTrulyListening ? 'is-listening-logo shadow-lg text-white' : 'bg-slate-900 text-white shadow-lg') : 'text-slate-200 hover:text-sky-500'}`}>
+                                    {isVoiceMode && isTrulyListening ? <IconVolume /> : (isVoiceMode ? <IconCar /> : <IconMic />)}
                                 </button>
                                 <input type="text" placeholder="Indexer..." className="flex-1 bg-transparent px-2 py-5 outline-none font-light italic text-slate-700" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleManualAdd()} />
                                 <button onClick={handleManualAdd} disabled={loading} className="bg-sky-500 text-white p-5 rounded-full shadow-xl">
-                                    {loading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-plus text-xl"></i>}
+                                    {loading ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <IconPlus />}
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {langMenuOpen && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/10 backdrop-blur-md">
-                            <div className="bg-white w-full max-w-xs rounded-[3rem] shadow-2xl p-10">
-                                <h4 className="text-[11px] uppercase font-bold text-slate-400 mb-8 text-center tracking-widest">Langues</h4>
-                                <div className="max-h-60 overflow-y-auto no-scrollbar space-y-2 mb-6">
-                                    {ALL_LANGUAGES.map(l => (
-                                        <button key={l.id} onClick={() => setSelectedLangs([l.id])} className={`w-full text-left p-4 rounded-2xl text-xs flex justify-between border ${selectedLangs.includes(l.id) ? 'bg-sky-50 text-sky-600 font-bold border-sky-100' : 'text-slate-400 border-transparent hover:bg-slate-50'}`}> {l.name} {selectedLangs.includes(l.id) && <i className="fa-solid fa-check"></i>}</button>
-                                    ))}
-                                </div>
-                                <button onClick={() => setLangMenuOpen(false)} className="w-full mt-2 py-5 bg-slate-900 text-white rounded-[2rem] text-[10px] font-bold uppercase tracking-widest shadow-xl">Confirmer</button>
-                            </div>
+                    {loading && (
+                        <div className="fixed inset-0 z-[300] bg-white/30 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
+                            <div className="w-12 h-12 border-4 border-sky-500/20 border-t-sky-500 rounded-full animate-spin" />
                         </div>
                     )}
                 </div>
