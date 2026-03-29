@@ -38,7 +38,7 @@
         @keyframes signatureRevealAction { 0%, 65% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
 
         .book-viewport { position: relative; transform-style: preserve-3d; perspective: 2500px; display: flex; align-items: center; justify-content: center; }
-        .alex-frame-box { background-color: #0ea5e9; border-radius: 24%; display: flex; align-items: center; justify-content: center; box-shadow: 0 45px 90px -15px rgba(14, 165, 233, 0.45); position: relative; transform-style: preserve-3d; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .alex-frame-box { background-color: #0ea5e9; border-radius: 24%; display: flex; align-items: center; justify-content: center; box-shadow: 0 45px 90px -15px rgba(14, 165, 233, 0.45); position: relative; transform-style: preserve-3d; transition: all 0.4s ease; }
         
         /* FEEDBACK VOCAL - ROUGE CERISE ÉLITE */
         .is-listening-logo { 
@@ -94,13 +94,12 @@
         };
         
         const apiKey = ""; 
-        const appIdStr = "dico-ai-heritage-alex-final-v17";
+        const appIdStr = "dico-ai-heritage-alex-final-v19";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Helper PCM to WAV
         const pcmToWav = (pcmData, sampleRate) => {
             const buffer = new ArrayBuffer(44 + pcmData.length);
             const view = new DataView(buffer);
@@ -208,7 +207,7 @@
                 rec.interimResults = false;
 
                 rec.onstart = () => {
-                    setIsListening(true); // Signal Rouge Cerise
+                    setIsListening(true); 
                 };
                 
                 rec.onresult = (e) => { 
@@ -217,11 +216,21 @@
                     processEncoding(transcript); 
                 };
                 
-                rec.onerror = () => setIsListening(false);
-                rec.onend = () => setIsListening(false);
+                rec.onerror = (err) => {
+                    console.error("Speech Error:", err);
+                    setIsListening(false);
+                };
+
+                rec.onend = () => { 
+                    setIsListening(false); 
+                };
                 
                 recognitionRef.current = rec;
-                try { rec.start(); } catch(e) { setIsListening(false); }
+                try { 
+                    rec.start(); 
+                } catch(e) { 
+                    setIsListening(false); 
+                }
             };
 
             const playGeminiTTS = async (text, startMicAfter = false) => {
@@ -242,7 +251,7 @@
                     
                     audio.onended = () => { 
                         if (startMicAfter && isVoice) {
-                            setTimeout(startListening, 50); // Enchaînement immédiat après la voix
+                            startListening();
                         } 
                     };
                     audio.play();
@@ -255,14 +264,16 @@
             };
 
             const processEncoding = async (textOverride) => {
-                const text = textOverride || inputValue;
-                if (!text || !text.trim() || loading) return;
-                setLoading(true);
+                const textInput = (textOverride || inputValue || "").trim();
+                if (!textInput || loading) return;
                 
-                const isFollowUp = lastWordRef.current && (text.includes("nuance") || text.includes("synonyme") || text.includes("mnémo") || text.includes("situation") || text.includes("pop"));
+                setLoading(true);
+                const text = textInput;
+                
+                const isFollowUp = lastWordRef.current && (text.toLowerCase().includes("nuance") || text.toLowerCase().includes("synonyme") || text.toLowerCase().includes("mnémo") || text.toLowerCase().includes("situation") || text.toLowerCase().includes("pop"));
 
                 if (isFollowUp) {
-                    const type = text.includes("nuance") || text.includes("synonyme") ? 'nuances' : 
+                    const type = (text.includes("nuance") || text.includes("synonyme")) ? 'nuances' : 
                                  text.includes("mnémo") ? 'mnemonic' :
                                  text.includes("situation") ? 'scenarios' : 'pop';
                     const res = await handleImprove(lastWordRef.current.id, lastWordRef.current.term, type);
@@ -276,11 +287,16 @@
                     const resText = await callGemini(prompt);
                     const result = JSON.parse(resText.match(/\{[\s\S]*\}/)[0]);
                     const docRef = await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
+                    
                     lastWordRef.current = { id: docRef.id, term: result.term };
-                    setInputValue('');
+                    setInputValue(''); 
                     setExpandedId(docRef.id);
                     if (isVoice) playGeminiTTS(`${result.term}. ${result.definition}`, true);
-                } catch(e) { console.error(e); } finally { setLoading(false); }
+                } catch(e) { 
+                    console.error("Analyse échouée:", e);
+                } finally { 
+                    setLoading(false); 
+                }
             };
 
             const handleImprove = async (id, term, type) => {
@@ -415,7 +431,6 @@
 
                     <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
                         <div className="max-w-md mx-auto">
-                            {/* FORMULAIRE POUR VALIDATION MOBILE GARANTIE */}
                             <form 
                                 onSubmit={(e) => { 
                                     e.preventDefault(); 
@@ -431,8 +446,12 @@
                                     onClick={() => { 
                                         const next = !isVoice; 
                                         setIsVoice(next); 
-                                        if (next) { playGeminiTTS("Je t'écoute Alex.", true); } 
-                                        else { setIsListening(false); if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {} }
+                                        if (next) { 
+                                            playGeminiTTS("Je t'écoute Alex.", true); 
+                                        } else {
+                                            setIsListening(false);
+                                            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {}
+                                        }
                                     }} 
                                     className={`p-4 rounded-full transition-all focus:outline-none ${isVoice ? (isListening ? 'is-listening-logo shadow-lg text-white' : 'bg-slate-900 text-white shadow-lg') : 'text-slate-200 hover:text-sky-500'}`}
                                 >
@@ -441,10 +460,11 @@
                                 <input 
                                     type="text" 
                                     placeholder="Indexer..." 
-                                    className="flex-1 bg-transparent px-2 py-5 outline-none font-light italic text-slate-700" 
+                                    className="flex-1 bg-transparent px-2 py-5 outline-none font-light italic text-slate-700 text-base" 
                                     value={inputValue} 
                                     onChange={e => setInputValue(e.target.value)}
                                     enterKeyHint="done"
+                                    autoComplete="off"
                                 />
                                 <button 
                                     type="submit" 
