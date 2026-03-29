@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>DiCo Ai Pro ✨</title>
     
+    <!-- CONFIGURATION PWA / MOBILE -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="DiCo Ai">
+    <meta name="mobile-web-app-capable" content="yes">
+    
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/512/blue-book.png">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/512/blue-book.png">
 
     <!-- Bibliothèques Core -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -16,7 +20,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -24,155 +28,55 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap');
         
-        * { 
-            font-family: 'Inter', sans-serif !important; 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        body, html { 
-            margin: 0; padding: 0; 
-            width: 100%; height: 100%; 
-            background-color: #ffffff; 
-            overflow-x: hidden; 
-        }
-
+        * { font-family: 'Inter', sans-serif !important; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #ffffff; overflow-x: hidden; }
         #root { width: 100%; height: 100%; display: flex; flex-direction: column; }
 
-        /* --- MOTEUR 3D ÉLITE (CADENASSÉ) --- */
-        @keyframes butterflyOpenAction {
-            0% { transform: rotateY(0deg); }
-            100% { transform: rotateY(-180deg); }
-        }
+        /* --- MOTEUR 3D ÉLITE (CADENASSÉ ROYAL) --- */
+        @keyframes butterflyOpenAction { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(-180deg); } }
+        @keyframes butterflyPageAction { 0% { transform: rotateY(0deg); opacity: 0; } 3% { opacity: 1; } 100% { transform: rotateY(-170deg); opacity: 1; } }
+        @keyframes signatureRevealAction { 0%, 65% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
+
+        .book-viewport { position: relative; transform-style: preserve-3d; perspective: 2500px; display: flex; align-items: center; justify-content: center; }
+        .alex-frame-box { background-color: #0ea5e9; border-radius: 24%; display: flex; align-items: center; justify-content: center; box-shadow: 0 45px 90px -15px rgba(14, 165, 233, 0.45); position: relative; transform-style: preserve-3d; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         
-        @keyframes butterflyPageAction {
-            0% { transform: rotateY(0deg); opacity: 0; }
-            3% { opacity: 1; }
-            100% { transform: rotateY(-170deg); opacity: 1; }
-        }
-
-        @keyframes signatureRevealAction {
-            0%, 65% { opacity: 0; transform: translateY(4px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        .book-viewport {
-            position: relative;
-            transform-style: preserve-3d;
-            perspective: 2500px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .alex-frame-box {
-            background-color: #0ea5e9;
-            border-radius: 24%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 45px 90px -15px rgba(14, 165, 233, 0.45);
-            position: relative;
-            transform-style: preserve-3d;
-            transition: all 0.4s ease;
-        }
-
+        /* FEEDBACK VOCAL - ROUGE CERISE ÉLITE */
         .is-listening-logo { 
             animation: listeningPulse 1.2s infinite !important; 
             background-color: #f43f5e !important; 
-            box-shadow: 0 25px 50px -12px rgba(244, 63, 94, 0.5) !important;
+            box-shadow: 0 0 60px 10px rgba(244, 63, 94, 0.6) !important;
+        }
+        
+        .is-voice-standby {
+            box-shadow: 0 0 30px 5px rgba(14, 165, 233, 0.5) !important;
         }
 
         @keyframes listeningPulse {
             0% { transform: scale(1); }
-            70% { transform: scale(1.05); }
+            50% { transform: scale(1.08); }
             100% { transform: scale(1); }
         }
 
-        .book-model {
-            position: relative;
-            transform-style: preserve-3d;
-            width: 44%;
-            height: 64%;
-            transform: translateX(22%);
-            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .book-right-page {
-            position: absolute;
-            inset: 0;
-            background: #fffdfa !important;
-            background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 12%, #fffdfa 100%);
-            border-radius: 0 6px 6px 0;
-            border: 1px solid #e2e8f0;
-            z-index: 5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 15px 15px 40px rgba(0,0,0,0.1);
-            transform-style: preserve-3d;
-        }
-
-        .book-cover-leaf {
-            position: absolute;
-            inset: 0;
-            transform-origin: left center;
-            z-index: 50;
-            transform-style: preserve-3d;
-            backface-visibility: visible;
-        }
-
-        .cover-front {
-            position: absolute;
-            inset: 0;
-            background: #fffdfa !important;
-            border: 2px solid #0ea5e9;
-            border-radius: 0 6px 6px 0;
-            backface-visibility: hidden;
-            z-index: 2;
-        }
-
-        .cover-back {
-            position: absolute;
-            inset: 0;
-            background: #fffdfa !important;
-            background-image: linear-gradient(to left, #f2ece4 0%, #fffdfa 15%, #fffdfa 100%);
-            transform: rotateY(180deg);
-            backface-visibility: hidden;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px 0 0 6px;
-            z-index: 1;
-        }
-
-        .book-turning-leaf {
-            position: absolute;
-            inset: 1px;
-            background: #fffdfa !important;
-            background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 18%, #fffdfa 100%);
-            border-radius: 0 6px 6px 0;
-            border: 1px solid #f1f5f9;
-            transform-origin: left center;
-            z-index: 40;
-            opacity: 0;
-            backface-visibility: hidden;
-        }
-
-        .book-spine-line {
-            position: absolute;
-            left: -1px; top: 0; bottom: 0;
-            width: 4px;
-            background: rgba(0,0,0,0.15);
-            z-index: 100;
-        }
+        .book-model { position: relative; transform-style: preserve-3d; width: 44%; height: 64%; transform: translateX(22%); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .book-right-page { position: absolute; inset: 0; background: #fffdfa !important; background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 12%, #fffdfa 100%); border-radius: 0 6px 6px 0; border: 1px solid #e2e8f0; z-index: 5; display: flex; align-items: center; justify-content: center; box-shadow: 15px 15px 40px rgba(0,0,0,0.1); transform-style: preserve-3d; }
+        .book-cover-leaf { position: absolute; inset: 0; transform-origin: left center; z-index: 50; transform-style: preserve-3d; backface-visibility: visible; }
+        .cover-front { position: absolute; inset: 0; background: #fffdfa !important; border: 2px solid #0ea5e9; border-radius: 0 6px 6px 0; backface-visibility: hidden; z-index: 2; }
+        .cover-back { position: absolute; inset: 0; background: #fffdfa !important; background-image: linear-gradient(to left, #f2ece4 0%, #fffdfa 15%, #fffdfa 100%); transform: rotateY(180deg); backface-visibility: hidden; border: 1px solid #e2e8f0; border-radius: 6px 0 0 6px; z-index: 1; }
+        .book-turning-leaf { position: absolute; inset: 1px; background: #fffdfa !important; background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 18%, #fffdfa 100%); border-radius: 0 6px 6px 0; border: 1px solid #f1f5f9; transform-origin: left center; z-index: 40; opacity: 0; backface-visibility: hidden; }
+        .book-spine-line { position: absolute; left: -1px; top: 0; bottom: 0; width: 4px; background: rgba(0,0,0,0.15); z-index: 100; }
 
         .anim-open { animation: butterflyOpenAction 2.2s 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
         .anim-page { animation: butterflyPageAction 2.6s 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
         .signature-reveal { animation: signatureRevealAction 3.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
 
         /* UI APP */
-        .card-premium { background: white; border-radius: 3rem; border: 1px solid #f1f5f9; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.04); transition: all 0.3s ease; }
+        .card-premium { background: white; border-radius: 1.5rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 10px -5px rgba(0,0,0,0.02); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; overflow: hidden; }
+        .card-premium.is-expanded { border-radius: 3rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.06); border-color: #e2e8f0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* BOUTONS ELITE */
         .btn-ai-pill { font-size: 8px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; padding: 10px 16px; border-radius: 9999px; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; border: 1px solid transparent; }
+        .ai-chat-bubble { background: #f8fafc; border-radius: 1.5rem; padding: 1.25rem; margin-top: 1rem; border-left: 4px solid #0ea5e9; font-size: 13px; font-style: italic; color: #475569; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -181,7 +85,6 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- CONFIGURATION FIREBASE ---
         const firebaseConfig = { 
             apiKey: "AIzaSyDS-n8NcoNTJ21FUb_MdOaPnX75EW2KIh8",
             authDomain: "dico-ai.firebaseapp.com",
@@ -191,27 +94,45 @@
             appId: "1:1083255726513:web:21d2af14a9efd449b0dd90"
         };
         
-        const GEMINI_API_KEY = ""; 
-        const appIdStr = "dico-ai-pro-alex";
+        const apiKey = ""; 
+        const appIdStr = "dico-ai-heritage-alex-final-v14";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- COMPOSANTS ICONES SVG (POUR UNE VISIBILITÉ 100%) ---
+        const pcmToWav = (pcmData, sampleRate) => {
+            const buffer = new ArrayBuffer(44 + pcmData.length);
+            const view = new DataView(buffer);
+            const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+            writeStr(0, 'RIFF'); view.setUint32(4, 36 + pcmData.length, true); writeStr(8, 'WAVE'); writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeStr(36, 'data');
+            view.setUint32(40, pcmData.length, true);
+            for (let i = 0; i < pcmData.length; i++) view.setUint8(44 + i, pcmData[i]);
+            return new Blob([buffer], { type: 'audio/wav' });
+        };
+
+        const LANGUAGES_DB = [
+            { id: 'en', name: 'Anglais' }, { id: 'es', name: 'Espagnol' }, { id: 'de', name: 'Allemand' },
+            { id: 'it', name: 'Italien' }, { id: 'pt', name: 'Portugais' }, { id: 'nl', name: 'Néerlandais' },
+            { id: 'ru', name: 'Russe' }, { id: 'ja', name: 'Japonais' }, { id: 'zh', name: 'Chinois' },
+            { id: 'ko', name: 'Coréen' }, { id: 'ar', name: 'Arabe' }
+        ];
+
+        const IconPlay = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>;
         const IconGlobe = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
         const IconMic = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
-        const IconCar = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>;
         const IconPlus = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-        const IconPlay = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>;
-        const IconTrash = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+        const IconTrash = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
         const IconVolume = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"/></svg>;
+        const IconBrain = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg>;
 
-        // --- COMPOSANT LOGO ROYAL (CADENASSÉ) ---
-        const DicoLogo = ({ size = 90, animated = true, listening = false }) => {
+        const DicoLogo = ({ size = 90, animated = true, listening = false, isVoiceMode = false }) => {
             return (
                 <div className="book-viewport" style={{ width: size, height: size }}>
-                    <div className={`alex-frame-box w-full h-full ${listening ? 'is-listening-logo' : ''}`}>
+                    <div className={`alex-frame-box w-full h-full ${listening ? 'is-listening-logo' : (isVoiceMode ? 'is-voice-standby' : '')}`}>
                         <div className="book-model">
                             <div className="book-spine-line" />
                             <div className="book-right-page">
@@ -233,159 +154,294 @@
 
         const App = () => {
             const [user, setUser] = useState(null);
+            const [hasStarted, setHasStarted] = useState(false);
             const [words, setWords] = useState([]);
             const [inputValue, setInputValue] = useState('');
-            const [searchQuery, setSearchQuery] = useState('');
+            const [activeLangTab, setActiveLangTab] = useState('fr'); 
             const [activeCategoryTab, setActiveCategoryTab] = useState('all');
             const [loading, setLoading] = useState(false);
-            const [isVoiceMode, setIsVoiceMode] = useState(false);
-            const [isTrulyListening, setIsTrulyListening] = useState(false);
-            const [isSpeaking, setIsSpeaking] = useState(false);
+            const [isVoice, setIsVoice] = useState(false);
+            const [isListening, setIsListening] = useState(false);
+            const [selectedLangs, setSelectedLangs] = useState(['en']); 
+            const [langMenuOpen, setLangMenuOpen] = useState(false);
+            const [expandedId, setExpandedId] = useState(null);
             
+            const lastWordRef = useRef(null);
             const recognitionRef = useRef(null);
 
             useEffect(() => {
-                // On détecte seulement, on ne force pas le login auto pour laisser la page de démarrage visible
-                const unsubscribe = auth.onAuthStateChanged(setUser);
+                const unsubscribe = auth.onAuthStateChanged(u => setUser(u));
                 return () => unsubscribe();
             }, []);
 
             useEffect(() => {
-                if (user) {
+                if (user && hasStarted) {
                     const q = db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary');
                     return q.onSnapshot(snap => setWords(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
                 }
-            }, [user]);
+            }, [user, hasStarted]);
 
             const callGemini = async (prompt, system = "Expert IA.") => {
-                if (!GEMINI_API_KEY) return JSON.stringify({action:"ask", answer:"Configure ta clé Gemini Alex !"});
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: system }] } })
-                });
-                const data = await res.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text;
-            };
-
-            const playTTS = async (text) => {
-                setIsSpeaking(true);
-                setIsTrulyListening(false);
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'fr-FR';
-                utterance.onend = () => { setIsSpeaking(false); if (isVoiceMode) startListening(); };
-                window.speechSynthesis.speak(utterance);
-            };
-
-            const startListening = () => {
-                const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!Rec || isSpeaking || !isVoiceMode) return;
-                const rec = new Rec();
-                rec.lang = 'fr-FR';
-                rec.onstart = () => setIsTrulyListening(true);
-                rec.onresult = (e) => handleVoiceEngine(e.results[0][0].transcript);
-                rec.onend = () => { setIsTrulyListening(false); if (isVoiceMode && !isSpeaking && !loading) setTimeout(startListening, 600); };
-                recognitionRef.current = rec;
-                try { rec.start(); } catch(e) { setIsTrulyListening(false); }
-            };
-
-            const handleVoiceEngine = async (text) => {
-                setLoading(true);
-                const sys = `Alex: "${text}". Si nouveau savoir: JSON {"action":"new", "data":{"category":"mot","term":"..","definition":"..","sourceLang":"Français"}}. Sinon question: {"action":"ask", "answer":".."}.`;
                 try {
-                    const resText = await callGemini(text, sys);
-                    const res = JSON.parse(resText.match(/\{[\s\S]*\}/)[0]);
-                    if (res.action === "new") {
-                        await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...res.data, createdAt: Date.now() });
-                        playTTS(`${res.data.term}. ${res.data.definition}.`);
-                    } else { playTTS(res.answer); }
-                } catch (e) { playTTS("Pardon Alex ?"); } finally { setLoading(false); }
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: system }] } })
+                    });
+                    const data = await res.json();
+                    return data.candidates?.[0]?.content?.[0]?.parts?.[0]?.text || data.candidates?.[0]?.content?.parts?.[0]?.text;
+                } catch (e) { throw e; }
             };
 
-            const handleManualAdd = async () => {
-                if (!inputValue.trim() || loading) return;
-                setLoading(true);
+            const playGeminiTTS = async (text, startMicAfter = false) => {
+                setIsListening(false); 
                 try {
-                    const resText = await callGemini(inputValue, "Réponds JSON: {\"category\":\"mot\",\"term\":\"corrigé\",\"definition\":\"explication\",\"sourceLang\":\"Français\"}");
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: text }] }],
+                            generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } },
+                            model: "gemini-2.5-flash-preview-tts"
+                        })
+                    });
+                    const result = await res.json();
+                    const audioData = result.candidates[0].content.parts[0].inlineData;
+                    const audio = new Audio(URL.createObjectURL(pcmToWav(atob(audioData.data).split("").map(c => c.charCodeAt(0)), 24000)));
+                    
+                    audio.onended = () => {
+                        if (startMicAfter && isVoice) {
+                            startListening();
+                        }
+                    };
+                    audio.play();
+                } catch (e) {
+                    const u = new SpeechSynthesisUtterance(text);
+                    u.lang = 'fr-FR';
+                    u.onend = () => { if (startMicAfter && isVoice) startListening(); };
+                    window.speechSynthesis.speak(u);
+                }
+            };
+
+            const processEncoding = async (text) => {
+                if (!text.trim() || loading) return;
+                setLoading(true);
+                const isFollowUp = lastWordRef.current && (text.includes("nuance") || text.includes("synonyme") || text.includes("mnémo") || text.includes("situation") || text.includes("pop"));
+
+                if (isFollowUp) {
+                    const type = text.includes("nuance") || text.includes("synonyme") ? 'nuances' : 
+                                 text.includes("mnémo") ? 'mnemonic' :
+                                 text.includes("situation") ? 'scenarios' : 'pop';
+                    const res = await handleImprove(lastWordRef.current.id, lastWordRef.current.term, type);
+                    playGeminiTTS(res, true);
+                    return;
+                }
+
+                try {
+                    const targets = selectedLangs.map(id => LANGUAGES_DB.find(l => l.id === id).name).join(', ');
+                    const prompt = `Analyse "${text}". Réponds en JSON: {"category":"mot"|"proverbe"|"nom","term":"corrigé","definition":"explication","translations":[{"lang":"langue","text":"traduction"}]}. Traduis en : ${targets}.`;
+                    const resText = await callGemini(prompt);
                     const result = JSON.parse(resText.match(/\{[\s\S]*\}/)[0]);
-                    await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
+                    const docRef = await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
+                    lastWordRef.current = { id: docRef.id, term: result.term };
                     setInputValue('');
+                    setExpandedId(docRef.id);
+                    if (isVoice) playGeminiTTS(`${result.term}. ${result.definition}`, true);
                 } catch(e) { console.error(e); } finally { setLoading(false); }
             };
 
-            if (!user) return (
+            // MODIFICATION CRUCIALE : FORCE L'ACTIVATION ET LE SIGNAL ROUGE
+            const startListening = () => {
+                const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!Rec) return;
+                
+                if (recognitionRef.current) {
+                    try { recognitionRef.current.stop(); } catch(e) {}
+                }
+                
+                const rec = new Rec(); rec.lang = 'fr-FR';
+                rec.continuous = false;
+                rec.interimResults = false;
+
+                // On force le signal rouge cerise immédiatement
+                setIsListening(true); 
+
+                rec.onstart = () => {
+                    setIsListening(true); 
+                };
+                rec.onresult = (e) => {
+                    setIsListening(false);
+                    processEncoding(e.results[0][0].transcript);
+                };
+                rec.onerror = (e) => {
+                    console.error("Speech Error", e);
+                    setIsListening(false);
+                };
+                rec.onend = () => { 
+                    setIsListening(false); 
+                };
+                
+                recognitionRef.current = rec;
+                try {
+                    rec.start();
+                } catch(e) {
+                    setIsListening(false);
+                }
+            };
+
+            const handleImprove = async (id, term, type) => {
+                if (loading) return;
+                setLoading(true);
+                const prompts = {
+                    nuances: `Donne les synonymes, antonymes et nuances précises de "${term}".`,
+                    mnemonic: `Donne une astuce mnémonique mémorable pour "${term}".`,
+                    scenarios: `Donne 2 exemples de situations concrètes d'utilisation pour "${term}".`,
+                    pop: `Donne des références pop-culture (film, livre, chanson) liées à "${term}".`
+                };
+                try {
+                    const res = await callGemini(prompts[type]);
+                    await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').doc(id).update({ [type]: res });
+                    return res;
+                } catch(e) { console.error(e); } finally { setLoading(false); }
+            };
+
+            const filteredData = useMemo(() => {
+                let list = words;
+                if (activeCategoryTab !== 'all') list = list.filter(w => w.category === activeCategoryTab);
+                if (activeLangTab !== 'fr') {
+                    const langName = LANGUAGES_DB.find(l => l.id === activeLangTab)?.name;
+                    list = list.filter(w => w.translations?.some(t => t.lang === langName));
+                }
+                return list.sort((a, b) => (a.term || "").localeCompare(b.term || "", 'fr', { sensitivity: 'base' }));
+            }, [words, activeCategoryTab, activeLangTab]);
+
+            if (!hasStarted) return (
                 <div className="h-screen flex flex-col items-center justify-center bg-white p-8 text-center animate-in fade-in">
-                    <div className="mb-20"><DicoLogo size={340} animated={true} listening={false} /></div>
-                    <button onClick={() => auth.signInAnonymously()} className="w-full max-w-[280px] bg-sky-500 text-white py-6 rounded-[3rem] shadow-xl font-bold uppercase tracking-[0.4em] active:scale-95 transition-all text-[11px] flex items-center justify-center gap-3">
+                    <div className="mb-20"><DicoLogo size={340} animated={true} /></div>
+                    <button onClick={() => { if (!user) auth.signInAnonymously(); setHasStarted(true); }} className="w-full max-w-[280px] bg-sky-500 text-white py-6 rounded-[3rem] shadow-xl font-bold uppercase tracking-[0.4em] active:scale-95 transition-all text-[11px] flex items-center justify-center gap-3">
                         <IconPlay /> Démarrer
                     </button>
-                    <p className="mt-8 text-slate-300 text-[10px] uppercase tracking-widest font-medium">Édition Héritage Elite</p>
                 </div>
             );
 
             return (
                 <div className="min-h-screen bg-[#fdfdfd] flex flex-col overflow-hidden pb-44">
                     <header className="p-6 pt-10 flex flex-col items-center border-b border-slate-50 gap-2 relative z-30">
-                        <DicoLogo size={140} animated={false} listening={isTrulyListening} />
+                        <DicoLogo size={140} animated={false} listening={isListening} isVoiceMode={isVoice} />
                         <div className="absolute right-6 top-10">
-                            <button onClick={() => auth.signOut()} className="text-slate-200 hover:text-rose-400 transition-colors">
+                            <button onClick={() => setHasStarted(false)} className="text-slate-200 hover:text-rose-400">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                             </button>
                         </div>
                     </header>
 
-                    <div className="bg-white border-b border-slate-50 p-6 space-y-4">
-                        <div className="flex gap-3 justify-center">
-                            {['all', 'mot', 'proverbe'].map(cat => (
-                                <button key={cat} onClick={() => setActiveCategoryTab(cat)} className={`px-4 py-1.5 rounded-full text-[9px] uppercase font-bold tracking-widest transition-all ${activeCategoryTab === cat ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-300'}`}>{cat === 'all' ? 'Tous' : cat + 's'}</button>
+                    <div className="bg-white p-6 space-y-6 border-b border-slate-50">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                            <button onClick={() => setActiveLangTab('fr')} className={`px-5 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap ${activeLangTab === 'fr' ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>Français</button>
+                            {selectedLangs.map(id => (
+                                <button key={id} onClick={() => setActiveLangTab(id)} className={`px-5 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap ${activeLangTab === id ? 'bg-sky-500 text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>
+                                    {LANGUAGES_DB.find(l => l.id === id)?.name}
+                                </button>
                             ))}
                         </div>
-                        <div className="relative mt-2">
-                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-200">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            </div>
-                            <input type="text" placeholder="Rechercher..." className="w-full pl-12 pr-6 py-4 bg-slate-50 rounded-full border-none outline-none text-sm italic text-slate-600" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                        <div className="flex gap-3 justify-center">
+                            {['all', 'mot', 'proverbe', 'nom'].map(cat => (
+                                <button key={cat} onClick={() => setActiveCategoryTab(cat)} className={`px-4 py-1.5 rounded-full text-[9px] uppercase font-bold tracking-widest transition-all ${activeCategoryTab === cat ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-300'}`}>{cat}</button>
+                            ))}
                         </div>
                     </div>
 
-                    <main className="flex-1 p-6 space-y-10 overflow-y-auto no-scrollbar">
-                        <div className="space-y-12 max-w-xl mx-auto">
-                            {words.filter(w => (activeCategoryTab === 'all' || w.category === activeCategoryTab) && (w.term || "").toLowerCase().includes(searchQuery.toLowerCase())).sort((a,b) => b.createdAt - a.createdAt).map(w => (
-                                <div key={w.id} className="p-10 card-premium animate-in fade-in">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-[10px] uppercase tracking-[0.3em] text-sky-500 font-bold bg-sky-50 px-4 py-1.5 rounded-full">{w.category}</span>
-                                            <button onClick={() => playTTS(`${w.term}. ${w.definition}`)} className="text-sky-200 hover:text-sky-500"><IconVolume /></button>
+                    <main className="flex-1 p-6 space-y-3 overflow-y-auto no-scrollbar">
+                        <div className="space-y-3 max-w-xl mx-auto">
+                            {filteredData.map(w => {
+                                const isExpanded = expandedId === w.id;
+                                return (
+                                    <div key={w.id} className={`p-6 card-premium animate-in fade-in ${isExpanded ? 'is-expanded' : ''}`} onClick={() => { setExpandedId(isExpanded ? null : w.id); lastWordRef.current = {id: w.id, term: w.term}; }}>
+                                        <div className="flex justify-between items-center">
+                                            <h3 className={`font-light italic text-slate-800 capitalize transition-all ${isExpanded ? 'text-4xl mb-6' : 'text-lg'}`}>
+                                                {activeLangTab === 'fr' ? w.term : (w.translations?.find(t => t.lang === LANGUAGES_DB.find(l => l.id === activeLangTab)?.name)?.text || w.term)}
+                                            </h3>
+                                            {!isExpanded && <span className="text-[7px] uppercase tracking-widest text-sky-400 font-bold bg-sky-50 px-3 py-1 rounded-full">{w.category}</span>}
                                         </div>
-                                        <button onClick={() => db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete()} className="text-slate-100 hover:text-rose-400"><IconTrash /></button>
+
+                                        {isExpanded && (
+                                            <div className="animate-in slide-in-from-top-2 duration-300">
+                                                <div className="flex justify-between items-start mb-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <span className="text-[10px] uppercase tracking-[0.3em] text-sky-500 font-bold bg-sky-50 px-4 py-1.5 rounded-full">{w.category}</span>
+                                                        <button onClick={(e) => { e.stopPropagation(); playGeminiTTS(`${w.term}. ${w.definition}`); }} className="text-sky-200 hover:text-sky-500"><IconVolume /></button>
+                                                    </div>
+                                                    <button onClick={(e) => { e.stopPropagation(); db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete(); }} className="text-slate-100 hover:text-rose-400"><IconTrash /></button>
+                                                </div>
+                                                <p className="text-lg text-slate-500 leading-relaxed font-light mb-8 italic">{w.definition}</p>
+                                                <div className="flex flex-wrap gap-2 mb-8 border-t border-slate-50 pt-8">
+                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'nuances'); }} className="btn-ai-pill bg-indigo-50 text-indigo-600 hover:bg-indigo-100"><IconBrain /> Nuances ✨</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'mnemonic'); }} className="btn-ai-pill bg-amber-50 text-amber-600 hover:bg-amber-100"><IconPlus /> Mnémo ✨</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'scenarios'); }} className="btn-ai-pill bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Situations ✨</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'pop'); }} className="btn-ai-pill bg-rose-50 text-rose-600 hover:bg-rose-100"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg> Pop ✨</button>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    {w.nuances && <div className="ai-chat-bubble"><b>Nuances :</b> {w.nuances}</div>}
+                                                    {w.mnemonic && <div className="ai-chat-bubble"><b>Mnémonique :</b> {w.mnemonic}</div>}
+                                                    {w.scenarios && <div className="ai-chat-bubble"><b>Situations :</b> {w.scenarios}</div>}
+                                                    {w.pop && <div className="ai-chat-bubble"><b>Pop-Culture :</b> {w.pop}</div>}
+                                                    {w.translations && w.translations.length > 0 && (
+                                                        <div className="mt-8 pt-8 border-t border-slate-50 space-y-4">
+                                                            <h4 className="text-[9px] uppercase font-bold tracking-widest text-slate-300">Traductions Indexées</h4>
+                                                            {w.translations.map((tr, idx) => (
+                                                                <div key={idx} className="flex items-center justify-between group py-1">
+                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">{tr.lang}</span>
+                                                                    <span className="text-xl font-light text-slate-400 italic cursor-pointer hover:text-sky-500" onClick={(e) => { e.stopPropagation(); playGeminiTTS(tr.text); }}>{tr.text}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <h3 className="text-4xl font-light italic tracking-tight capitalize mb-4 text-slate-800">{w.term} <span className="text-[10px] text-slate-300 ml-2">({w.sourceLang})</span></h3>
-                                    <p className="text-lg text-slate-500 leading-relaxed font-light mb-10 opacity-75">{w.definition}</p>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </main>
+
+                    {langMenuOpen && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/10 backdrop-blur-md">
+                            <div className="bg-white w-full max-w-xs rounded-[3rem] shadow-2xl p-10">
+                                <h4 className="text-[11px] uppercase font-bold text-slate-400 mb-8 text-center tracking-widest">Traductions Actives</h4>
+                                <div className="max-h-60 overflow-y-auto no-scrollbar space-y-2 mb-6">
+                                    {LANGUAGES_DB.map(l => (
+                                        <button key={l.id} onClick={() => setSelectedLangs(prev => prev.includes(l.id) ? (prev.length > 1 ? prev.filter(x => x !== l.id) : prev) : [...prev, l.id])} className={`w-full text-left p-4 rounded-2xl text-xs flex justify-between border ${selectedLangs.includes(l.id) ? 'bg-sky-50 text-sky-600 font-bold border-sky-100' : 'text-slate-400 border-transparent hover:bg-slate-50'}`}> {l.name} {selectedLangs.includes(l.id) && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}</button>
+                                    ))}
+                                </div>
+                                <button onClick={() => setLangMenuOpen(false)} className="w-full mt-2 py-5 bg-slate-900 text-white rounded-[2rem] text-[10px] font-bold uppercase tracking-widest shadow-xl">Confirmer ({selectedLangs.length})</button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
                         <div className="max-w-md mx-auto">
                             <div className="bg-white rounded-[4rem] shadow-2xl p-3 flex items-center gap-3 border border-slate-100">
-                                <button className="p-4 text-slate-200 hover:text-sky-500 transition-all"><IconGlobe /></button>
-                                <button onClick={() => { const next = !isVoiceMode; setIsVoiceMode(next); if (next) playTTS("Je t'écoute Alex."); else setIsTrulyListening(false); }} className={`p-4 rounded-full transition-all ${isVoiceMode ? (isTrulyListening ? 'is-listening-logo shadow-lg text-white' : 'bg-slate-900 text-white shadow-lg') : 'text-slate-200 hover:text-sky-500'}`}>
-                                    {isVoiceMode && isTrulyListening ? <IconVolume /> : (isVoiceMode ? <IconCar /> : <IconMic />)}
+                                <button onClick={() => setLangMenuOpen(true)} className="p-4 text-slate-200 hover:text-sky-500 transition-all"><IconGlobe /></button>
+                                <button onClick={() => { 
+                                    const next = !isVoice; 
+                                    setIsVoice(next); 
+                                    if (next) { 
+                                        playGeminiTTS("Je t'écoute Alex.", true); 
+                                    } else {
+                                        setIsListening(false);
+                                        if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {}
+                                    }
+                                }} className={`p-4 rounded-full transition-all ${isVoice ? (isListening ? 'is-listening-logo shadow-lg text-white' : 'bg-slate-900 text-white shadow-lg') : 'text-slate-200 hover:text-sky-500'}`}>
+                                    <IconMic />
                                 </button>
-                                <input type="text" placeholder="Indexer..." className="flex-1 bg-transparent px-2 py-5 outline-none font-light italic text-slate-700" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleManualAdd()} />
-                                <button onClick={handleManualAdd} disabled={loading} className="bg-sky-500 text-white p-5 rounded-full shadow-xl">
+                                <input type="text" placeholder="Indexer..." className="flex-1 bg-transparent px-2 py-5 outline-none font-light italic text-slate-700" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={e => e.key === 'Enter' && processEncoding(inputValue)} />
+                                <button onClick={() => processEncoding(inputValue)} disabled={loading} className="bg-sky-500 text-white p-5 rounded-full shadow-xl">
                                     {loading ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <IconPlus />}
                                 </button>
                             </div>
                         </div>
                     </div>
-
-                    {loading && (
-                        <div className="fixed inset-0 z-[300] bg-white/30 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
-                            <div className="w-12 h-12 border-4 border-sky-500/20 border-t-sky-500 rounded-full animate-spin" />
-                        </div>
-                    )}
                 </div>
             );
         };
