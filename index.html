@@ -99,7 +99,7 @@
         };
         
         const apiKey = ""; 
-        const appIdStr = "dico-ai-heritage-alex-final-v22";
+        const appIdStr = "dico-ai-heritage-alex-v23";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -197,39 +197,28 @@
                 } catch (e) { throw e; }
             };
 
-            // --- RECONNAISSANCE VOCALE MOBILE RENFORCÉE ---
             const startListening = () => {
                 const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!Rec) return;
-                
-                if (recognitionRef.current) { 
-                    try { recognitionRef.current.stop(); } catch(e) {} 
-                }
-                
+                if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e) {} }
                 const rec = new Rec(); 
                 rec.lang = 'fr-FR';
                 rec.continuous = false;
                 rec.interimResults = false;
-
                 rec.onstart = () => { setIsListening(true); };
                 rec.onresult = (e) => { 
                     setIsListening(false); 
                     const transcript = e.results[0][0].transcript;
                     processEncoding(transcript); 
                 };
-                rec.onerror = (err) => {
-                    setIsListening(false);
-                };
-                rec.onend = () => { setIsListening(false); };
-                
+                rec.onerror = () => setIsListening(false);
+                rec.onend = () => setIsListening(false);
                 recognitionRef.current = rec;
                 try { rec.start(); } catch(e) { setIsListening(false); }
             };
 
             const playGeminiTTS = async (text, startMicAfter = false) => {
-                // Sur smartphone : on ouvre le micro dès le clic pour garder le lien avec le geste utilisateur
                 if (startMicAfter && isVoice) { startListening(); }
-
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
                         method: 'POST',
@@ -243,9 +232,8 @@
                     const result = await res.json();
                     const audioData = result.candidates[0].content.parts[0].inlineData;
                     const audio = new Audio(URL.createObjectURL(pcmToWav(atob(audioData.data).split("").map(c => c.charCodeAt(0)), 24000)));
-                    
-                    audio.onplay = () => { if(startMicAfter) setIsListening(false); }; // Signal bleu pendant que l'IA parle
-                    audio.onended = () => { if(startMicAfter) setIsListening(true); }; // Signal rouge quand l'IA se tait
+                    audio.onplay = () => { if(startMicAfter) setIsListening(false); };
+                    audio.onended = () => { if(startMicAfter) setIsListening(true); };
                     audio.play();
                 } catch (e) {
                     const u = new SpeechSynthesisUtterance(text);
@@ -255,21 +243,23 @@
                 }
             };
 
-            // --- FONCTION DE TRAITEMENT CORRIGÉE POUR MOBILE ---
             const processEncoding = async (textOverride) => {
-                // On récupère le texte manuel (input) ou automatique (micro)
-                const targetText = (textOverride || inputValue || "").trim();
-                
-                if (!targetText || loading) return;
+                // SÉCURITÉ MOBILE : On récupère la valeur actuelle ou l'override vocale
+                const rawText = (textOverride || inputValue || "").trim();
+                if (!rawText) return;
+
+                // On autorise le traitement même si loading est vrai, si c'est une entrée vocale (pour éviter le blocage)
+                if (loading && !textOverride) return;
                 
                 setLoading(true);
+                const text = rawText;
                 
-                const isFollowUp = lastWordRef.current && (targetText.toLowerCase().includes("nuance") || targetText.toLowerCase().includes("synonyme") || targetText.toLowerCase().includes("mnémo") || targetText.toLowerCase().includes("situation") || targetText.toLowerCase().includes("pop"));
+                const isFollowUp = lastWordRef.current && (text.toLowerCase().includes("nuance") || text.toLowerCase().includes("synonyme") || text.toLowerCase().includes("mnémo") || text.toLowerCase().includes("situation") || text.toLowerCase().includes("pop"));
 
                 if (isFollowUp) {
-                    const type = (targetText.includes("nuance") || targetText.includes("synonyme")) ? 'nuances' : 
-                                 targetText.includes("mnémo") ? 'mnemonic' :
-                                 targetText.includes("situation") ? 'scenarios' : 'pop';
+                    const type = (text.includes("nuance") || text.includes("synonyme")) ? 'nuances' : 
+                                 text.includes("mnémo") ? 'mnemonic' :
+                                 text.includes("situation") ? 'scenarios' : 'pop';
                     const res = await handleImprove(lastWordRef.current.id, lastWordRef.current.term, type);
                     playGeminiTTS(res, true);
                     return;
@@ -277,20 +267,15 @@
 
                 try {
                     const targets = selectedLangs.map(id => LANGUAGES_DB.find(l => l.id === id).name).join(', ');
-                    const prompt = `Analyse "${targetText}". Réponds en JSON: {"category":"mot"|"proverbe"|"nom","term":"corrigé","definition":"explication","translations":[{"lang":"langue","text":"traduction"}]}. Traduis en : ${targets}.`;
+                    const prompt = `Analyse "${text}". Réponds en JSON: {"category":"mot"|"proverbe"|"nom","term":"corrigé","definition":"explication","translations":[{"lang":"langue","text":"traduction"}]}. Traduis en : ${targets}.`;
                     const resText = await callGemini(prompt);
                     const result = JSON.parse(resText.match(/\{[\s\S]*\}/)[0]);
                     const docRef = await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
-                    
                     lastWordRef.current = { id: docRef.id, term: result.term };
                     setInputValue(''); 
                     setExpandedId(docRef.id);
                     if (isVoice) playGeminiTTS(`${result.term}. ${result.definition}`, true);
-                } catch(e) { 
-                    console.error("Erreur d'analyse IA");
-                } finally { 
-                    setLoading(false); 
-                }
+                } catch(e) { console.error("Analyse échouée"); } finally { setLoading(false); }
             };
 
             const handleImprove = async (id, term, type) => {
@@ -423,15 +408,16 @@
 
                     <div className="fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
                         <div className="max-w-md mx-auto">
-                            {/* FORMULAIRE POUR VALIDATION MOBILE GARANTIE ✨ */}
+                            {/* FORMULAIRE RENFORCÉ ✨ */}
                             <form 
                                 onSubmit={(e) => { 
                                     e.preventDefault(); 
                                     processEncoding(); 
                                 }} 
+                                action="javascript:void(0);"
                                 className="bg-white rounded-[2.5rem] shadow-xl p-2 flex items-center gap-1 border border-slate-100"
                             >
-                                <button type="button" onClick={() => setLangMenuOpen(true)} className="p-3 text-slate-200 transition-all focus:outline-none">
+                                <button type="button" onClick={() => setLangMenuOpen(true)} className="p-3 text-slate-200 focus:outline-none">
                                     <IconGlobe />
                                 </button>
                                 <button 
