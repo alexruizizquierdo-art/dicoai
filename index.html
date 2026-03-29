@@ -5,14 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>DiCo Ai Pro ✨</title>
     
-    <!-- CONFIGURATION PWA / MOBILE -->
+    <!-- CONFIGURATION "VRAIE APPLI" (PWA & IOS) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="DiCo Ai">
+    <meta name="apple-mobile-web-app-title" content="DiCo Ai Pro">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffffff">
     
+    <!-- Icônes de l'application -->
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/512/blue-book.png">
     <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/512/blue-book.png">
+    
+    <!-- Manifeste embarqué pour l'installation -->
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22DiCo%20Ai%20Pro%22,%22short_name%22:%22DiCo%20Ai%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%230ea5e9%22,%22icons%22:[{%22src%22:%22https://img.icons8.com/fluency/512/blue-book.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
 
     <!-- Bibliothèques Core -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -38,17 +43,16 @@
         @keyframes signatureRevealAction { 0%, 65% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
 
         .book-viewport { position: relative; transform-style: preserve-3d; perspective: 2500px; display: flex; align-items: center; justify-content: center; }
-        .alex-frame-box { background-color: #0ea5e9; border-radius: 24%; display: flex; align-items: center; justify-content: center; box-shadow: 0 45px 90px -15px rgba(14, 165, 233, 0.45); position: relative; transform-style: preserve-3d; transition: all 0.4s ease; }
+        .alex-frame-box { background-color: #0ea5e9; border-radius: 24%; display: flex; align-items: center; justify-content: center; box-shadow: 0 30px 60px -12px rgba(14, 165, 233, 0.45); position: relative; transform-style: preserve-3d; transition: all 0.4s ease; }
         
-        /* FEEDBACK VOCAL - ROUGE CERISE ÉLITE */
         .is-listening-logo { 
             animation: listeningPulse 1.2s infinite !important; 
             background-color: #f43f5e !important; 
-            box-shadow: 0 0 60px 10px rgba(244, 63, 94, 0.6) !important;
+            box-shadow: 0 0 50px 8px rgba(244, 63, 94, 0.6) !important;
         }
         
         .is-voice-standby {
-            box-shadow: 0 0 30px 5px rgba(14, 165, 233, 0.5) !important;
+            box-shadow: 0 0 25px 4px rgba(14, 165, 233, 0.5) !important;
         }
 
         @keyframes listeningPulse {
@@ -58,7 +62,7 @@
         }
 
         .book-model { position: relative; transform-style: preserve-3d; width: 44%; height: 64%; transform: translateX(22%); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .book-right-page { position: absolute; inset: 0; background: #fffdfa !important; background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 12%, #fffdfa 100%); border-radius: 0 6px 6px 0; border: 1px solid #e2e8f0; z-index: 5; display: flex; align-items: center; justify-content: center; box-shadow: 15px 15px 40px rgba(0,0,0,0.1); transform-style: preserve-3d; }
+        .book-right-page { position: absolute; inset: 0; background: #fffdfa !important; background-image: linear-gradient(to right, #f2ece4 0%, #fffdfa 12%, #fffdfa 100%); border-radius: 0 6px 6px 0; border: 1px solid #e2e8f0; z-index: 5; display: flex; align-items: center; justify-content: center; box-shadow: 10px 10px 30px rgba(0,0,0,0.1); transform-style: preserve-3d; }
         .book-cover-leaf { position: absolute; inset: 0; transform-origin: left center; z-index: 50; transform-style: preserve-3d; backface-visibility: visible; }
         .cover-front { position: absolute; inset: 0; background: #fffdfa !important; border: 2px solid #0ea5e9; border-radius: 0 6px 6px 0; backface-visibility: hidden; z-index: 2; }
         .cover-back { position: absolute; inset: 0; background: #fffdfa !important; background-image: linear-gradient(to left, #f2ece4 0%, #fffdfa 15%, #fffdfa 100%); transform: rotateY(180deg); backface-visibility: hidden; border: 1px solid #e2e8f0; border-radius: 6px 0 0 6px; z-index: 1; }
@@ -70,12 +74,12 @@
         .signature-reveal { animation: signatureRevealAction 3.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
 
         /* UI APP */
-        .card-premium { background: white; border-radius: 1.5rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 10px -5px rgba(0,0,0,0.02); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; overflow: hidden; }
-        .card-premium.is-expanded { border-radius: 3rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.06); border-color: #e2e8f0; }
+        .card-premium { background: white; border-radius: 1.25rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px -4px rgba(0,0,0,0.02); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; overflow: hidden; }
+        .card-premium.is-expanded { border-radius: 1.75rem; box-shadow: 0 20px 40px -15px rgba(0,0,0,0.06); border-color: #e2e8f0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        .btn-ai-pill { font-size: 8px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; padding: 10px 16px; border-radius: 9999px; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; border: 1px solid transparent; }
-        .ai-chat-bubble { background: #f8fafc; border-radius: 1.5rem; padding: 1.25rem; margin-top: 1rem; border-left: 4px solid #0ea5e9; font-size: 13px; font-style: italic; color: #475569; line-height: 1.6; }
+        .btn-ai-pill { font-size: 7px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; padding: 8px 12px; border-radius: 9999px; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px; border: 1px solid transparent; }
+        .ai-chat-bubble { background: #f8fafc; border-radius: 1rem; padding: 0.85rem; margin-top: 0.75rem; border-left: 3px solid #0ea5e9; font-size: 11px; font-style: italic; color: #475569; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -94,12 +98,13 @@
         };
         
         const apiKey = ""; 
-        const appIdStr = "dico-ai-heritage-alex-final-v19";
+        const appIdStr = "dico-ai-heritage-alex-v21";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Conversion PCM to WAV
         const pcmToWav = (pcmData, sampleRate) => {
             const buffer = new ArrayBuffer(44 + pcmData.length);
             const view = new DataView(buffer);
@@ -115,19 +120,17 @@
 
         const LANGUAGES_DB = [
             { id: 'en', name: 'Anglais' }, { id: 'es', name: 'Espagnol' }, { id: 'de', name: 'Allemand' },
-            { id: 'it', name: 'Italien' }, { id: 'pt', name: 'Portugais' }, { id: 'nl', name: 'Néerlandais' },
-            { id: 'ru', name: 'Russe' }, { id: 'ja', name: 'Japonais' }, { id: 'zh', name: 'Chinois' },
-            { id: 'ko', name: 'Coréen' }, { id: 'ar', name: 'Arabe' }
+            { id: 'it', name: 'Italien' }, { id: 'ja', name: 'Japonais' }, { id: 'zh', name: 'Chinois' },
+            { id: 'ar', name: 'Arabe' }
         ];
 
-        // --- ICONES SVGS ---
-        const IconPlay = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>;
-        const IconGlobe = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
-        const IconMic = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
-        const IconPlus = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-        const IconTrash = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
-        const IconVolume = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"/></svg>;
-        const IconBrain = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg>;
+        const IconPlay = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>;
+        const IconGlobe = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+        const IconMic = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
+        const IconPlus = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+        const IconTrash = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+        const IconVolume = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"/></svg>;
+        const IconBrain = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg>;
 
         const DicoLogo = ({ size = 90, animated = true, listening = false, isVoiceMode = false }) => {
             return (
@@ -197,44 +200,29 @@
                 const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!Rec) return;
                 
-                if (recognitionRef.current) {
-                    try { recognitionRef.current.stop(); } catch(e) {}
-                }
+                if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e) {} }
                 
                 const rec = new Rec(); 
                 rec.lang = 'fr-FR';
                 rec.continuous = false;
                 rec.interimResults = false;
 
-                rec.onstart = () => {
-                    setIsListening(true); 
-                };
-                
+                rec.onstart = () => { setIsListening(true); };
                 rec.onresult = (e) => { 
                     setIsListening(false); 
-                    const transcript = e.results[0][0].transcript;
-                    processEncoding(transcript); 
+                    processEncoding(e.results[0][0].transcript); 
                 };
-                
-                rec.onerror = (err) => {
-                    console.error("Speech Error:", err);
-                    setIsListening(false);
-                };
-
-                rec.onend = () => { 
-                    setIsListening(false); 
-                };
+                rec.onerror = () => setIsListening(false);
+                rec.onend = () => setIsListening(false);
                 
                 recognitionRef.current = rec;
-                try { 
-                    rec.start(); 
-                } catch(e) { 
-                    setIsListening(false); 
-                }
+                try { rec.start(); } catch(e) { setIsListening(false); }
             };
 
             const playGeminiTTS = async (text, startMicAfter = false) => {
-                setIsListening(false); 
+                // Pour mobile : on initialise le micro immédiatement au clic pour "déverrouiller" le matériel
+                if (startMicAfter && isVoice) { startListening(); }
+
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
                         method: 'POST',
@@ -249,27 +237,22 @@
                     const audioData = result.candidates[0].content.parts[0].inlineData;
                     const audio = new Audio(URL.createObjectURL(pcmToWav(atob(audioData.data).split("").map(c => c.charCodeAt(0)), 24000)));
                     
-                    audio.onended = () => { 
-                        if (startMicAfter && isVoice) {
-                            startListening();
-                        } 
-                    };
+                    audio.onplay = () => { if(startMicAfter) setIsListening(false); };
+                    audio.onended = () => { if(startMicAfter) setIsListening(true); };
                     audio.play();
                 } catch (e) {
                     const u = new SpeechSynthesisUtterance(text);
                     u.lang = 'fr-FR';
-                    u.onend = () => { if (startMicAfter && isVoice) startListening(); };
+                    u.onend = () => { if (startMicAfter) setIsListening(true); };
                     window.speechSynthesis.speak(u);
                 }
             };
 
             const processEncoding = async (textOverride) => {
-                const textInput = (textOverride || inputValue || "").trim();
-                if (!textInput || loading) return;
+                const text = (textOverride || inputValue || "").trim();
+                if (!text || loading) return;
                 
                 setLoading(true);
-                const text = textInput;
-                
                 const isFollowUp = lastWordRef.current && (text.toLowerCase().includes("nuance") || text.toLowerCase().includes("synonyme") || text.toLowerCase().includes("mnémo") || text.toLowerCase().includes("situation") || text.toLowerCase().includes("pop"));
 
                 if (isFollowUp) {
@@ -287,16 +270,11 @@
                     const resText = await callGemini(prompt);
                     const result = JSON.parse(resText.match(/\{[\s\S]*\}/)[0]);
                     const docRef = await db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').add({ ...result, createdAt: Date.now() });
-                    
                     lastWordRef.current = { id: docRef.id, term: result.term };
                     setInputValue(''); 
                     setExpandedId(docRef.id);
                     if (isVoice) playGeminiTTS(`${result.term}. ${result.definition}`, true);
-                } catch(e) { 
-                    console.error("Analyse échouée:", e);
-                } finally { 
-                    setLoading(false); 
-                }
+                } catch(e) { console.error(e); } finally { setLoading(false); }
             };
 
             const handleImprove = async (id, term, type) => {
@@ -326,82 +304,80 @@
             }, [words, activeCategoryTab, activeLangTab]);
 
             if (!hasStarted) return (
-                <div className="h-screen flex flex-col items-center justify-center bg-white p-8 text-center animate-in fade-in">
-                    <div className="mb-20"><DicoLogo size={340} animated={true} /></div>
-                    <button onClick={() => { if (!user) auth.signInAnonymously(); setHasStarted(true); }} className="w-full max-w-[280px] bg-sky-500 text-white py-6 rounded-[3rem] shadow-xl font-bold uppercase tracking-[0.4em] active:scale-95 transition-all text-[11px] flex items-center justify-center gap-3">
+                <div className="h-screen flex flex-col items-center justify-center bg-white p-4 text-center animate-in fade-in overflow-hidden">
+                    <div className="mb-8"><DicoLogo size={220} animated={true} /></div>
+                    <button onClick={() => { if (!user) auth.signInAnonymously(); setHasStarted(true); }} className="w-full max-w-[220px] bg-sky-500 text-white py-4 rounded-[2rem] shadow-lg font-bold uppercase tracking-[0.3em] active:scale-95 transition-all text-[9px] flex items-center justify-center gap-3">
                         <IconPlay /> Démarrer
                     </button>
                 </div>
             );
 
             return (
-                <div className="min-h-screen bg-[#fdfdfd] flex flex-col overflow-hidden pb-44">
-                    <header className="p-6 pt-10 flex flex-col items-center border-b border-slate-50 gap-2 relative z-30">
-                        <DicoLogo size={140} animated={false} listening={isListening} isVoiceMode={isVoice} />
-                        <div className="absolute right-6 top-10">
-                            <button onClick={() => setHasStarted(false)} className="text-slate-200 hover:text-rose-400 transition-colors">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                            </button>
+                <div className="min-h-screen bg-[#fdfdfd] flex flex-col overflow-x-hidden pb-32">
+                    <header className="p-4 pt-6 flex flex-col items-center border-b border-slate-50 gap-2 relative z-30">
+                        <DicoLogo size={90} animated={false} listening={isListening} isVoiceMode={isVoice} />
+                        <div className="absolute right-4 top-6">
+                            <button onClick={() => setHasStarted(false)} className="text-slate-200 p-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
                         </div>
                     </header>
 
-                    <div className="bg-white p-6 space-y-6 border-b border-slate-50">
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                            <button onClick={() => setActiveLangTab('fr')} className={`px-5 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap ${activeLangTab === 'fr' ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>Français</button>
+                    <div className="bg-white p-3 space-y-3 sticky top-0 z-20 shadow-sm">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                            <button onClick={() => setActiveLangTab('fr')} className={`px-3 py-1.5 rounded-full text-[8px] uppercase font-bold tracking-widest transition-all whitespace-nowrap ${activeLangTab === 'fr' ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}>Français</button>
                             {selectedLangs.map(id => (
-                                <button key={id} onClick={() => setActiveLangTab(id)} className={`px-5 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap ${activeLangTab === id ? 'bg-sky-500 text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>
+                                <button key={id} onClick={() => setActiveLangTab(id)} className={`px-3 py-1.5 rounded-full text-[8px] uppercase font-bold tracking-widest transition-all whitespace-nowrap ${activeLangTab === id ? 'bg-sky-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}>
                                     {LANGUAGES_DB.find(l => l.id === id)?.name}
                                 </button>
                             ))}
                         </div>
-                        <div className="flex gap-3 justify-center">
+                        <div className="flex gap-2 justify-center">
                             {['all', 'mot', 'proverbe', 'nom'].map(cat => (
-                                <button key={cat} onClick={() => setActiveCategoryTab(cat)} className={`px-4 py-1.5 rounded-full text-[9px] uppercase font-bold tracking-widest transition-all ${activeCategoryTab === cat ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-300'}`}>{cat}</button>
+                                <button key={cat} onClick={() => setActiveCategoryTab(cat)} className={`px-2 py-1 rounded-full text-[7px] uppercase font-bold tracking-widest transition-all ${activeCategoryTab === cat ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-300'}`}>{cat}</button>
                             ))}
                         </div>
                     </div>
 
-                    <main className="flex-1 p-6 space-y-3 overflow-y-auto no-scrollbar">
-                        <div className="space-y-3 max-w-xl mx-auto">
+                    <main className="flex-1 p-3 space-y-2 overflow-y-auto no-scrollbar">
+                        <div className="space-y-2 max-w-full">
                             {filteredData.map(w => {
                                 const isExpanded = expandedId === w.id;
                                 return (
-                                    <div key={w.id} className={`p-6 card-premium animate-in fade-in ${isExpanded ? 'is-expanded' : ''}`} onClick={() => { setExpandedId(isExpanded ? null : w.id); lastWordRef.current = {id: w.id, term: w.term}; }}>
+                                    <div key={w.id} className={`p-4 card-premium animate-in fade-in ${isExpanded ? 'is-expanded' : ''}`} onClick={() => { setExpandedId(isExpanded ? null : w.id); lastWordRef.current = {id: w.id, term: w.term}; }}>
                                         <div className="flex justify-between items-center">
-                                            <h3 className={`font-light italic text-slate-800 capitalize transition-all ${isExpanded ? 'text-4xl mb-6' : 'text-lg'}`}>
+                                            <h3 className={`font-light italic text-slate-800 capitalize transition-all ${isExpanded ? 'text-lg mb-3' : 'text-sm'}`}>
                                                 {activeLangTab === 'fr' ? w.term : (w.translations?.find(t => t.lang === LANGUAGES_DB.find(l => l.id === activeLangTab)?.name)?.text || w.term)}
                                             </h3>
-                                            {!isExpanded && <span className="text-[7px] uppercase tracking-widest text-sky-400 font-bold bg-sky-50 px-3 py-1 rounded-full">{w.category}</span>}
+                                            {!isExpanded && <span className="text-[5px] uppercase tracking-widest text-sky-400 font-bold bg-sky-50 px-1 py-0.5 rounded-full">{w.category}</span>}
                                         </div>
 
                                         {isExpanded && (
-                                            <div className="animate-in slide-in-from-top-2 duration-300">
-                                                <div className="flex justify-between items-start mb-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <span className="text-[10px] uppercase tracking-[0.3em] text-sky-500 font-bold bg-sky-50 px-4 py-1.5 rounded-full">{w.category}</span>
-                                                        <button onClick={(e) => { e.stopPropagation(); playGeminiTTS(`${w.term}. ${w.definition}`); }} className="text-sky-200 hover:text-sky-500"><IconVolume /></button>
+                                            <div className="animate-in slide-in-from-top-1 duration-200">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[8px] uppercase tracking-widest text-sky-500 font-bold bg-sky-50 px-2 py-1 rounded-full">{w.category}</span>
+                                                        <button onClick={(e) => { e.stopPropagation(); playGeminiTTS(`${w.term}. ${w.definition}`); }} className="text-sky-200 p-1"><IconVolume /></button>
                                                     </div>
-                                                    <button onClick={(e) => { e.stopPropagation(); db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete(); }} className="text-slate-100 hover:text-rose-400"><IconTrash /></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); db.collection('artifacts').doc(appIdStr).collection('users').doc(user.uid).collection('dictionary').doc(w.id).delete(); }} className="text-slate-100 p-1"><IconTrash /></button>
                                                 </div>
-                                                <p className="text-lg text-slate-500 leading-relaxed font-light mb-8 italic">{w.definition}</p>
-                                                <div className="flex flex-wrap gap-2 mb-8 border-t border-slate-50 pt-8">
-                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'nuances'); }} className="btn-ai-pill bg-indigo-50 text-indigo-600 hover:bg-indigo-100"><IconBrain /> Nuances ✨</button>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'mnemonic'); }} className="btn-ai-pill bg-amber-50 text-amber-600 hover:bg-amber-100"><IconPlus /> Mnémo ✨</button>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'scenarios'); }} className="btn-ai-pill bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Situations ✨</button>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'pop'); }} className="btn-ai-pill bg-rose-50 text-rose-600 hover:bg-rose-100"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg> Pop ✨</button>
+                                                <p className="text-xs text-slate-500 leading-relaxed font-light mb-4 italic">{w.definition}</p>
+                                                <div className="flex flex-wrap gap-1.5 mb-4 border-t border-slate-50 pt-4">
+                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'nuances'); }} className="btn-ai-pill bg-indigo-50 text-indigo-600">Nuances ✨</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'mnemonic'); }} className="btn-ai-pill bg-amber-50 text-amber-600">Mnémo ✨</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'scenarios'); }} className="btn-ai-pill bg-emerald-50 text-emerald-600">Situations ✨</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleImprove(w.id, w.term, 'pop'); }} className="btn-ai-pill bg-rose-50 text-rose-600">Pop ✨</button>
                                                 </div>
-                                                <div className="space-y-4">
+                                                <div className="space-y-2">
                                                     {w.nuances && <div className="ai-chat-bubble"><b>Nuances :</b> {w.nuances}</div>}
-                                                    {w.mnemonic && <div className="ai-chat-bubble"><b>Mnémonique :</b> {w.mnemonic}</div>}
+                                                    {w.mnemonic && <div className="ai-chat-bubble"><b>Mnémo :</b> {w.mnemonic}</div>}
                                                     {w.scenarios && <div className="ai-chat-bubble"><b>Situations :</b> {w.scenarios}</div>}
-                                                    {w.pop && <div className="ai-chat-bubble"><b>Pop-Culture :</b> {w.pop}</div>}
+                                                    {w.pop && <div className="ai-chat-bubble"><b>Pop :</b> {w.pop}</div>}
                                                     {w.translations && w.translations.length > 0 && (
-                                                        <div className="mt-8 pt-8 border-t border-slate-50 space-y-4">
-                                                            <h4 className="text-[9px] uppercase font-bold tracking-widest text-slate-300">Traductions Indexées</h4>
+                                                        <div className="mt-4 pt-4 border-t border-slate-50 space-y-2">
+                                                            <h4 className="text-[7px] uppercase font-bold tracking-widest text-slate-300">Traductions</h4>
                                                             {w.translations.map((tr, idx) => (
-                                                                <div key={idx} className="flex items-center justify-between group py-1">
-                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">{tr.lang}</span>
-                                                                    <span className="text-xl font-light text-slate-400 italic cursor-pointer hover:text-sky-500" onClick={(e) => { e.stopPropagation(); playGeminiTTS(tr.text); }}>{tr.text}</span>
+                                                                <div key={idx} className="flex items-center justify-between">
+                                                                    <span className="text-[8px] font-bold text-slate-400 uppercase">{tr.lang}</span>
+                                                                    <span className="text-sm font-light text-slate-400 italic cursor-pointer" onClick={(e) => { e.stopPropagation(); playGeminiTTS(tr.text); }}>{tr.text}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -416,63 +392,26 @@
                     </main>
 
                     {langMenuOpen && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/10 backdrop-blur-md">
-                            <div className="bg-white w-full max-w-xs rounded-[3rem] shadow-2xl p-10">
-                                <h4 className="text-[11px] uppercase font-bold text-slate-400 mb-8 text-center tracking-widest">Traductions Actives</h4>
-                                <div className="max-h-60 overflow-y-auto no-scrollbar space-y-2 mb-6">
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/10 backdrop-blur-sm">
+                            <div className="bg-white w-full max-w-xs rounded-[2rem] shadow-2xl p-5">
+                                <h4 className="text-[9px] uppercase font-bold text-slate-400 mb-4 text-center tracking-widest">Langues Actives</h4>
+                                <div className="max-h-52 overflow-y-auto no-scrollbar space-y-1 mb-4">
                                     {LANGUAGES_DB.map(l => (
-                                        <button key={l.id} onClick={() => setSelectedLangs(prev => prev.includes(l.id) ? (prev.length > 1 ? prev.filter(x => x !== l.id) : prev) : [...prev, l.id])} className={`w-full text-left p-4 rounded-2xl text-xs flex justify-between border ${selectedLangs.includes(l.id) ? 'bg-sky-50 text-sky-600 font-bold border-sky-100' : 'text-slate-400 border-transparent hover:bg-slate-50'}`}> {l.name} {selectedLangs.includes(l.id) && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}</button>
+                                        <button key={l.id} onClick={() => setSelectedLangs(prev => prev.includes(l.id) ? (prev.length > 1 ? prev.filter(x => x !== l.id) : prev) : [...prev, l.id])} className={`w-full text-left p-3 rounded-xl text-[10px] flex justify-between border ${selectedLangs.includes(l.id) ? 'bg-sky-50 text-sky-600 font-bold border-sky-100' : 'text-slate-400 border-transparent'}`}> {l.name} {selectedLangs.includes(l.id) && "✓"}</button>
                                     ))}
                                 </div>
-                                <button onClick={() => setLangMenuOpen(false)} className="w-full mt-2 py-5 bg-slate-900 text-white rounded-[2rem] text-[10px] font-bold uppercase tracking-widest shadow-xl">Confirmer ({selectedLangs.length})</button>
+                                <button onClick={() => setLangMenuOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-xl text-[8px] font-bold uppercase tracking-widest">Confirmer</button>
                             </div>
                         </div>
                     )}
 
-                    <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
+                    <div className="fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
                         <div className="max-w-md mx-auto">
-                            <form 
-                                onSubmit={(e) => { 
-                                    e.preventDefault(); 
-                                    processEncoding(); 
-                                }} 
-                                className="bg-white rounded-[4rem] shadow-2xl p-3 flex items-center gap-3 border border-slate-100"
-                            >
-                                <button type="button" onClick={() => setLangMenuOpen(true)} className="p-4 text-slate-200 hover:text-sky-500 transition-all focus:outline-none">
-                                    <IconGlobe />
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => { 
-                                        const next = !isVoice; 
-                                        setIsVoice(next); 
-                                        if (next) { 
-                                            playGeminiTTS("Je t'écoute Alex.", true); 
-                                        } else {
-                                            setIsListening(false);
-                                            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {}
-                                        }
-                                    }} 
-                                    className={`p-4 rounded-full transition-all focus:outline-none ${isVoice ? (isListening ? 'is-listening-logo shadow-lg text-white' : 'bg-slate-900 text-white shadow-lg') : 'text-slate-200 hover:text-sky-500'}`}
-                                >
-                                    <IconMic />
-                                </button>
-                                <input 
-                                    type="text" 
-                                    placeholder="Indexer..." 
-                                    className="flex-1 bg-transparent px-2 py-5 outline-none font-light italic text-slate-700 text-base" 
-                                    value={inputValue} 
-                                    onChange={e => setInputValue(e.target.value)}
-                                    enterKeyHint="done"
-                                    autoComplete="off"
-                                />
-                                <button 
-                                    type="submit" 
-                                    disabled={loading} 
-                                    className="bg-sky-500 text-white p-5 rounded-full shadow-xl active:scale-90 transition-transform flex items-center justify-center min-w-[56px] min-h-[56px]"
-                                >
-                                    {loading ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <IconPlus />}
-                                </button>
+                            <form onSubmit={(e) => { e.preventDefault(); processEncoding(); }} className="bg-white rounded-[2.5rem] shadow-xl p-2 flex items-center gap-1 border border-slate-100">
+                                <button type="button" onClick={() => setLangMenuOpen(true)} className="p-3 text-slate-200 transition-all"><IconGlobe /></button>
+                                <button type="button" onClick={() => { const next = !isVoice; setIsVoice(next); if (next) { playGeminiTTS("Je t'écoute Alex.", true); } else { setIsListening(false); if (recognitionRef.current) try { recognitionRef.current.stop(); } catch(e) {} } }} className={`p-3 rounded-full transition-all ${isVoice ? (isListening ? 'is-listening-logo shadow-md text-white' : 'bg-slate-900 text-white shadow-md') : 'text-slate-200'}`}><IconMic /></button>
+                                <input type="text" placeholder="Indexer..." className="flex-1 bg-transparent px-2 py-3 outline-none font-light italic text-slate-700 text-sm" value={inputValue} onChange={e => setInputValue(e.target.value)} enterKeyHint="done" autoComplete="off" />
+                                <button type="submit" disabled={loading} className="bg-sky-500 text-white p-3 rounded-full shadow-lg active:scale-90 flex items-center justify-center min-w-[40px] min-h-[40px]">{loading ? <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <IconPlus />}</button>
                             </form>
                         </div>
                     </div>
